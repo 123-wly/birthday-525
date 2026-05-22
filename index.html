@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>生日快乐 💕</title>
+<style>
+/* ============ 全局重置与基础样式 ============ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+  background: linear-gradient(170deg, #fef0f5 0%, #fce4ec 25%, #fff3e0 60%, #fce4ec 100%);
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* ============ Canvas 粒子层 ============ */
+#particleCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ============ 开场爱心文字 ============ */
+#heroText {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+#heroText.visible { opacity: 1; }
+#heroText .title {
+  font-size: clamp(2rem, 6vw, 4rem);
+  font-weight: 700;
+  background: linear-gradient(135deg, #e91e63, #f06292, #ff8a65);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  letter-spacing: 0.08em;
+}
+#heroText .subtitle {
+  font-size: clamp(1rem, 3vw, 1.6rem);
+  color: #d81b60;
+  margin-top: 0.5em;
+  opacity: 0.85;
+  letter-spacing: 0.05em;
+}
+
+/* ============ 照片容器 ============ */
+#photoContainer {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ============ 拍立得相纸卡片 ============ */
+.photo-card {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  will-change: transform;
+  transition: filter 0.2s ease;
+  z-index: 1;
+  touch-action: none; /* 允许拖拽 */
+}
+.photo-card:active { cursor: grabbing; }
+.photo-card.dragging {
+  z-index: 100;
+  filter: brightness(1.05);
+  transition: filter 0.1s ease;
+}
+.photo-card:hover, .photo-card.touched {
+  z-index: 99;
+}
+.photo-card .polaroid {
+  background: #fffdf7;
+  padding: 8px 8px 28px 8px;
+  border-radius: 3px;
+  box-shadow: 2px 3px 12px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08);
+  position: relative;
+  width: 150px;
+}
+.photo-card.dragging .polaroid,
+.photo-card:hover .polaroid,
+.photo-card.touched .polaroid {
+  box-shadow: 4px 8px 28px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.12);
+}
+.photo-card .polaroid img {
+  display: block;
+  width: 134px;
+  height: 134px;
+  object-fit: cover;
+  border-radius: 1px;
+  pointer-events: none;
+}
+.photo-card .polaroid::after {
+  content: '❤';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: #e91e63;
+  opacity: 0.6;
+}
+
+/* ============ 右下角切换按钮 ============ */
+#toggleBtn {
+  position: fixed;
+  bottom: 80px; right: 16px;
+  z-index: 20;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid #f8bbd0;
+  border-radius: 24px;
+  padding: 10px 18px;
+  font-size: 15px;
+  color: #c2185b;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 16px rgba(233,30,99,0.18);
+  transition: all 0.3s ease;
+  pointer-events: auto;
+  font-family: inherit;
+}
+#toggleBtn:active { transform: scale(0.94); background: #fce4ec; }
+
+/* ============ 左下角信息面板 ============ */
+#infoPanel {
+  position: fixed;
+  bottom: 80px; left: 16px;
+  z-index: 20;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid #f8bbd0;
+  border-radius: 18px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #c2185b;
+  box-shadow: 0 4px 16px rgba(233,30,99,0.15);
+  pointer-events: none;
+  line-height: 1.6;
+}
+
+/* ============ 音乐控制按钮 ============ */
+#musicBtn {
+  position: fixed;
+  bottom: 24px; right: 16px;
+  z-index: 20;
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid #f8bbd0;
+  cursor: pointer;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(233,30,99,0.2);
+  transition: all 0.3s ease;
+  pointer-events: auto;
+  animation: none;
+}
+#musicBtn.playing {
+  animation: musicSpin 3s linear infinite;
+  border-color: #e91e63;
+  color: #e91e63;
+}
+#musicBtn.paused { animation: none; color: #999; }
+@keyframes musicSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============ 全屏查看器 ============ */
+#fullscreenViewer {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 200;
+  background: rgba(0,0,0,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#fullscreenViewer.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+#fullscreenViewer img {
+  max-width: 92vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 0 60px rgba(255,255,255,0.1);
+  transition: transform 0.15s ease;
+}
+#fullscreenViewer .closeBtn {
+  position: absolute;
+  top: 16px; right: 16px;
+  z-index: 10;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#fullscreenViewer .navBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: none;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#fullscreenViewer .navBtn.prev { left: 8px; }
+#fullscreenViewer .navBtn.next { right: 8px; }
+#fullscreenViewer .counter {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
+/* ============ 留言板 ============ */
+#messageBoard {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  width: min(500px, 92vw);
+  pointer-events: auto;
+}
+#messageBoard .boardToggle {
+  display: block;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid #f8bbd0;
+  border-radius: 20px;
+  padding: 8px 22px;
+  font-size: 14px;
+  color: #c2185b;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(233,30,99,0.15);
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+#messageBoard .boardContent {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, margin 0.4s ease;
+  background: #f5e6d3;
+  background-image:
+    radial-gradient(circle, #d4b896 1px, transparent 1px),
+    radial-gradient(circle, #c4a882 0.5px, transparent 0.5px),
+    radial-gradient(circle, #e8d5c0 1.5px, transparent 1.5px);
+  background-size: 12px 12px, 20px 20px, 18px 18px;
+  background-position: 0 0, 5px 5px, 9px 9px;
+  border-radius: 12px;
+  border: 2px solid #d4b896;
+  box-shadow: inset 0 0 30px rgba(139,90,43,0.08), 0 6px 24px rgba(0,0,0,0.1);
+}
+#messageBoard .boardContent.open {
+  max-height: 420px;
+  margin-bottom: 8px;
+}
+#messageBoard .boardInner {
+  padding: 14px;
+  max-height: 360px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#messageBoard .boardTitle {
+  text-align: center;
+  font-size: 15px;
+  color: #8d6e63;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+#messageBoard .inputRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+#messageBoard .inputRow input {
+  flex: 1 1 70px;
+  min-width: 60px;
+  padding: 8px 12px;
+  border: 1.5px solid #d4b896;
+  border-radius: 14px;
+  font-size: 13px;
+  font-family: inherit;
+  background: rgba(255,255,255,0.85);
+  outline: none;
+  color: #5d4037;
+}
+#messageBoard .inputRow input:focus { border-color: #e91e63; }
+#messageBoard .inputRow button {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f06292, #e91e63);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: transform 0.15s ease;
+}
+#messageBoard .inputRow button:active { transform: scale(0.94); }
+#messageBoard .notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.sticky-note {
+  padding: 12px 14px;
+  border-radius: 2px 14px 2px 14px;
+  font-size: 12px;
+  max-width: 160px;
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.12);
+  position: relative;
+  word-break: break-word;
+  line-height: 1.5;
+}
+.sticky-note .noteAuthor { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.sticky-note .noteTime { font-size: 10px; opacity: 0.55; margin-top: 6px; text-align: right; }
+.sticky-note::before {
+  content: '📌';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+}
+
+/* ============ 时光卡片 ============ */
+#daysCard {
+  position: fixed;
+  top: 16px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid #f8bbd0;
+  border-radius: 20px;
+  padding: 12px 22px;
+  text-align: center;
+  box-shadow: 0 6px 24px rgba(233,30,99,0.16);
+  animation: cardFloat 3s ease-in-out infinite;
+  pointer-events: auto;
+}
+@keyframes cardFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-6px); }
+}
+#daysCard .daysLabel {
+  font-size: 12px;
+  color: #ad1457;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+#daysCard .daysNumber {
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, #e91e63, #ff6f91);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+#daysCard .daysHeart {
+  font-size: 18px;
+  animation: heartBeat 0.8s ease-in-out infinite;
+}
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.25); }
+  30% { transform: scale(1); }
+}
+
+/* ============ 响应式设计 ============ */
+@media (max-width: 600px) {
+  .photo-card .polaroid { width: 110px; padding: 6px 6px 20px 6px; }
+  .photo-card .polaroid img { width: 98px; height: 98px; }
+  .photo-card .polaroid::after { font-size: 11px; }
+  #toggleBtn { bottom: 72px; right: 10px; padding: 8px 14px; font-size: 13px; }
+  #infoPanel { bottom: 72px; left: 10px; padding: 8px 12px; font-size: 11px; }
+  #messageBoard { width: 96vw; }
+  #messageBoard .boardContent.open { max-height: 340px; }
+  #messageBoard .boardInner { max-height: 280px; }
+  #musicBtn { bottom: 18px; right: 10px; width: 42px; height: 42px; font-size: 20px; }
+  #fullscreenViewer .navBtn { width: 38px; height: 38px; font-size: 18px; }
+}
+@media (max-width: 380px) {
+  .photo-card .polaroid { width: 90px; padding: 5px 5px 16px 5px; }
+  .photo-card .polaroid img { width: 80px; height: 80px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 粒子画布 -->
+<canvas id="particleCanvas"></canvas>
+
+<!-- 开场标题 -->
+<div id="heroText">
+  <div class="title">🎂 生日快乐 🎂</div>
+  <div class="subtitle">致我最爱的宝贝</div>
+</div>
+
+<!-- 照片容器 -->
+<div id="photoContainer"></div>
+
+<!-- 全屏查看器 -->
+<div id="fullscreenViewer">
+  <button class="closeBtn" aria-label="关闭">✕</button>
+  <button class="navBtn prev" aria-label="上一张">◂</button>
+  <img src="" alt="全屏照片" />
+  <button class="navBtn next" aria-label="下一张">▸</button>
+  <span class="counter"></span>
+</div>
+
+<!-- 时光卡片 -->
+<div id="daysCard">
+  <div class="daysLabel">我们在一起的第</div>
+  <div class="daysNumber" id="daysNum">0</div>
+  <div class="daysLabel">天 <span class="daysHeart">💕</span></div>
+</div>
+
+<!-- 切换按钮 -->
+<button id="toggleBtn" aria-label="切换照片类型">📷 查看独照</button>
+
+<!-- 信息面板 -->
+<div id="infoPanel">
+  <div>🍂 飘落中：<span id="fallingCount">0</span> 张</div>
+  <div>💝 已收藏：<span id="collectedCount">0</span> 张</div>
+</div>
+
+<!-- 音乐按钮 -->
+<button id="musicBtn" aria-label="音乐开关" class="playing">🎵</button>
+
+<!-- 留言板 -->
+<div id="messageBoard">
+  <div class="boardContent" id="boardContent">
+    <div class="boardInner">
+      <div class="boardTitle">💌 把你想说的话，贴在这里叭</div>
+      <div class="inputRow">
+        <input type="text" id="msgNickname" placeholder="你的名字" maxlength="12" />
+        <input type="text" id="msgContent" placeholder="写下你想说的话…" maxlength="80" />
+        <button id="msgSend">贴上去</button>
+      </div>
+      <div class="notes" id="notesContainer"></div>
+    </div>
+  </div>
+  <button class="boardToggle" id="boardToggleBtn">💬 留言板</button>
+</div>
+
+<script>
+/* =================================================================================
+ *  浪漫生日祝福网站 — 核心脚本
+ *  功能：粒子爱心 → 花雨相册 → 拍立得拖拽 → 全屏查看 → 留言板 → 时光卡片 → 音乐
+ * ================================================================================= */
+
+// ==================== 全局配置 ====================
+const CONFIG = {
+  startDate: new Date('2026-01-20'),           // 在一起的日子
+  heartDuration: 3800,                          // 爱心显示时长(ms)
+  burstDuration: 1200,                          // 爱心散开过渡(ms)
+  particleCount: 3200,                          // 爱心粒子数量
+  sparkleCount: 80,                             // 背景萤火虫数量
+  photoFallInterval: 1800,                      // 照片飘落间隔(ms)
+  maxFallingPhotos: 10,                         // 同时飘落最大数量
+  heartScale: 0.7,                              // 爱心整体大小
+};
+
+// ==================== 照片列表 ====================
+const PHOTO_PATHS = {
+  together: [
+    '微信图片_20260522201856_61_100.jpg',
+    '微信图片_20260522201857_62_100.jpg',
+    '微信图片_20260522201858_63_100.jpg',
+    '微信图片_20260522201900_65_100.jpg',
+    '微信图片_20260522201900_66_100.jpg',
+    '微信图片_20260522201901_67_100.jpg',
+    '微信图片_20260522201902_68_100.jpg',
+    '微信图片_20260522201903_69_100.jpg',
+    '微信图片_20260522201905_70_100.jpg',
+    '微信图片_20260522201905_71_100.jpg',
+    '微信图片_20260522201907_72_100.jpg',
+    '微信图片_20260522201907_73_100.jpg',
+  ],
+  solo: [
+    '微信图片_20260522201846_49_100.jpg',
+    '微信图片_20260522201847_50_100.jpg',
+    '微信图片_20260522201847_51_100.jpg',
+    '微信图片_20260522201848_52_100.jpg',
+    '微信图片_20260522201849_53_100.jpg',
+    '微信图片_20260522201850_54_100.jpg',
+    '微信图片_20260522201851_55_100.jpg',
+    '微信图片_20260522201852_56_100.jpg',
+    '微信图片_20260522201852_57_100.jpg',
+    '微信图片_20260522201853_58_100.jpg',
+    '微信图片_20260522201854_59_100.jpg',
+    '微信图片_20260522201855_60_100.jpg',
+    '微信图片_20260522201859_64_100.jpg',
+  ]
+};
+
+// ==================== 全局状态 ====================
+let state = {
+  phase: 'heart',           // 'heart' | 'bursting' | 'falling'
+  currentAlbum: 'together', // 'together' | 'solo'
+  collectedCount: 0,
+  fallingPhotos: [],
+  heartTime: 0,
+  burstProgress: 0,
+  musicPlaying: true,
+  fullscreenIndex: -1,
+  currentPhotoList: [],
+};
+
+// ==================== DOM 元素引用 ====================
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+const photoContainer = document.getElementById('photoContainer');
+const heroText = document.getElementById('heroText');
+const toggleBtn = document.getElementById('toggleBtn');
+const infoFalling = document.getElementById('fallingCount');
+const infoCollected = document.getElementById('collectedCount');
+const musicBtn = document.getElementById('musicBtn');
+const fullscreenViewer = document.getElementById('fullscreenViewer');
+const fullscreenImg = fullscreenViewer.querySelector('img');
+const fullscreenCounter = fullscreenViewer.querySelector('.counter');
+const daysNum = document.getElementById('daysNum');
+const boardToggleBtn = document.getElementById('boardToggleBtn');
+const boardContent = document.getElementById('boardContent');
+const msgNickname = document.getElementById('msgNickname');
+const msgContentInput = document.getElementById('msgContent');
+const msgSend = document.getElementById('msgSend');
+const notesContainer = document.getElementById('notesContainer');
+
+// ==================== Canvas 尺寸适配 ====================
+function resizeCanvas() {
+  canvas.width = window.innerWidth * devicePixelRatio;
+  canvas.height = window.innerHeight * devicePixelRatio;
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ==================== 粒子系统 ====================
+class Particle {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    // 心脏参数方程：x = 16sin³(t), y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
+    this.t = Math.random() * Math.PI * 2;
+    // 用 sqrt 让粒子更密集分布在边缘，形成饱满的爱心
+    this.heartRadius = Math.pow(Math.random(), 0.55);
+    this.baseSize = 1.2 + Math.random() * 3.5;
+    this.size = this.baseSize;
+    // 粉色系色相
+    const hue = 340 + Math.random() * 30;
+    const sat = 60 + Math.random() * 40;
+    const light = 50 + Math.random() * 35;
+    this.color = `hsla(${hue}, ${sat}%, ${light}%, ${0.7 + Math.random() * 0.3})`;
+    this.glowColor = `hsla(${hue}, ${sat}%, ${light + 10}%, 0.5)`;
+    // 浮动参数
+    this.floatOffset = Math.random() * Math.PI * 2;
+    this.floatSpeed = 0.6 + Math.random() * 1.2;
+    this.floatAmp = 1 + Math.random() * 4;
+    // 旋转
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotationSpeed = (Math.random() - 0.5) * 0.03;
+    // 拖尾
+    this.trail = [];
+    this.maxTrail = 3 + Math.floor(Math.random() * 4);
+    // 散开后的花瓣状态
+    this.petalX = 0;
+    this.petalY = 0;
+    this.petalVX = 0;
+    this.petalVY = 0;
+    this.petalRotation = 0;
+    this.petalRotSpeed = 0;
+    this.petalSway = 0;
+    this.petalSwaySpeed = 0;
+    this.petalSize = this.baseSize * (0.8 + Math.random() * 2);
+  }
+
+  // 计算心脏上的位置
+  getHeartPos(scale, time) {
+    const hx = 16 * Math.pow(Math.sin(this.t), 3);
+    const hy = 13 * Math.cos(this.t) - 5 * Math.cos(2 * this.t)
+             - 2 * Math.cos(3 * this.t) - Math.cos(4 * this.t);
+    // 呼吸效果
+    const breathe = 1 + Math.sin(time * 1.8) * 0.025;
+    // 浮动
+    const floatY = Math.sin(time * this.floatSpeed + this.floatOffset) * this.floatAmp;
+    const floatX = Math.cos(time * this.floatSpeed * 0.7 + this.floatOffset) * this.floatAmp * 0.5;
+    return {
+      x: hx * this.heartRadius * scale * breathe + floatX,
+      y: -hy * this.heartRadius * scale * breathe + floatY,
+    };
+  }
+
+  // 初始化花瓣散开状态
+  initPetal(heartPos, centerX, centerY) {
+    this.petalX = centerX + heartPos.x;
+    this.petalY = centerY + heartPos.y;
+    // 向外散开的速度
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1 + Math.random() * 6;
+    this.petalVX = Math.cos(angle) * speed + (Math.random() - 0.5) * 3;
+    this.petalVY = Math.sin(angle) * speed - Math.random() * 4 - 2;
+    this.petalRotation = Math.random() * Math.PI * 2;
+    this.petalRotSpeed = (Math.random() - 0.5) * 0.06;
+    this.petalSway = 0;
+    this.petalSwaySpeed = 0.01 + Math.random() * 0.025;
+  }
+
+  // 更新花瓣飘落
+  updatePetal(gravity, wind) {
+    this.petalVY += gravity;
+    this.petalVX += wind;
+    this.petalX += this.petalVX;
+    this.petalY += this.petalVY;
+    this.petalRotation += this.petalRotSpeed;
+    // 左右摇摆
+    this.petalSway += this.petalSwaySpeed;
+    this.petalX += Math.sin(this.petalSway) * 0.4;
+    // 超出屏幕底部则重置到顶部
+    if (this.petalY > window.innerHeight + 60) {
+      this.petalY = -40;
+      this.petalX = Math.random() * window.innerWidth;
+      this.petalVY = 0.3 + Math.random() * 1.2;
+    }
+  }
+
+  // 更新拖尾
+  updateTrail(x, y) {
+    this.trail.push({ x, y, life: 1 });
+    if (this.trail.length > this.maxTrail) this.trail.shift();
+    for (let t of this.trail) t.life -= 0.15;
+    this.trail = this.trail.filter(t => t.life > 0);
+  }
+
+  // 绘制心脏粒子（带拖尾和光晕）
+  drawHeart(ctx, x, y, alpha) {
+    // 光晕
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.35;
+    ctx.fillStyle = this.glowColor;
+    ctx.beginPath();
+    ctx.arc(x, y, this.size * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 拖尾
+    for (let i = 0; i < this.trail.length; i++) {
+      const t = this.trail[i];
+      ctx.save();
+      ctx.globalAlpha = alpha * t.life * 0.4;
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, this.size * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 主体
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(this.rotation);
+    // 用圆角矩形模拟花瓣形状
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    // 小花瓣形状
+    const s = this.size;
+    ctx.moveTo(0, -s);
+    ctx.bezierCurveTo(s * 0.6, -s * 0.6, s * 0.8, s * 0.3, 0, s);
+    ctx.bezierCurveTo(-s * 0.8, s * 0.3, -s * 0.6, -s * 0.6, 0, -s);
+    ctx.fill();
+    // 内部亮点
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 绘制花瓣（散开后）
+  drawPetal(ctx, x, y, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(this.petalRotation);
+    ctx.fillStyle = this.color;
+    const s = this.petalSize;
+    ctx.beginPath();
+    ctx.moveTo(0, -s);
+    ctx.bezierCurveTo(s * 0.5, -s * 0.5, s * 0.7, s * 0.2, 0, s * 0.9);
+    ctx.bezierCurveTo(-s * 0.7, s * 0.2, -s * 0.5, -s * 0.5, 0, -s);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// 创建粒子池
+const particles = [];
+for (let i = 0; i < CONFIG.particleCount; i++) {
+  particles.push(new Particle());
+}
+
+// ==================== 背景萤火虫（金色小光点） ====================
+class Sparkle {
+  constructor() {
+    this.reset(true);
+  }
+  reset(init) {
+    this.x = Math.random() * window.innerWidth;
+    this.y = init ? Math.random() * window.innerHeight : -20;
+    this.size = 0.8 + Math.random() * 2.2;
+    this.speedY = 0.15 + Math.random() * 0.5;
+    this.speedX = (Math.random() - 0.5) * 0.3;
+    this.opacity = 0.2 + Math.random() * 0.5;
+    this.phase = Math.random() * Math.PI * 2;
+    this.flickerSpeed = 1 + Math.random() * 2;
+  }
+  update() {
+    this.y -= this.speedY;
+    this.x += this.speedX + Math.sin(this.phase) * 0.2;
+    this.phase += 0.02;
+    if (this.y < -20) { this.y = window.innerHeight + 20; this.x = Math.random() * window.innerWidth; }
+    if (this.x < -20) this.x = window.innerWidth + 20;
+    if (this.x > window.innerWidth + 20) this.x = -20;
+  }
+  draw(ctx, time) {
+    const flicker = 0.5 + 0.5 * Math.sin(time * this.flickerSpeed + this.phase);
+    const alpha = this.opacity * flicker;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    // 金色光点
+    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+    gradient.addColorStop(0, 'rgba(255, 235, 180, 1)');
+    gradient.addColorStop(0.4, 'rgba(255, 220, 150, 0.7)');
+    gradient.addColorStop(1, 'rgba(255, 200, 100, 0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+const sparkles = [];
+for (let i = 0; i < CONFIG.sparkleCount; i++) {
+  sparkles.push(new Sparkle());
+}
+
+// ==================== 照片卡片管理 ====================
+class PhotoCard {
+  constructor(imgSrc, index) {
+    this.imgSrc = imgSrc;
+    this.index = index;
+    this.x = 50 + Math.random() * (window.innerWidth - 200);
+    this.y = -180 - Math.random() * 400;
+    this.rotation = (Math.random() - 0.5) * 25;
+    this.rotationSpeed = (Math.random() - 0.5) * 0.35;
+    this.fallSpeed = 0.35 + Math.random() * 0.65;
+    this.swayAmp = 20 + Math.random() * 40;
+    this.swaySpeed = 0.008 + Math.random() * 0.015;
+    this.swayPhase = Math.random() * Math.PI * 2;
+    this.scale = 1;
+    this.targetScale = 1;
+    this.width = 0;
+    this.height = 0;
+    this.dragging = false;
+    this.collected = false;
+    this.dragOffsetX = 0;
+    this.dragOffsetY = 0;
+    this.lastTouchDist = 0;
+    this.pinchScale = 1;
+    this.element = null;
+    this.imgElement = null;
+    this.createDOM();
+  }
+
+  createDOM() {
+    const card = document.createElement('div');
+    card.className = 'photo-card';
+    card.innerHTML = `
+      <div class="polaroid">
+        <img src="${this.imgSrc}" alt="照片" loading="lazy" />
+      </div>
+    `;
+    this.element = card;
+    this.imgElement = card.querySelector('img');
+
+    // 鼠标事件
+    card.addEventListener('mousedown', e => this.onDragStart(e.clientX, e.clientY, e));
+    card.addEventListener('mouseenter', () => {
+      if (!this.dragging) this.element.classList.add('touched');
+    });
+    card.addEventListener('mouseleave', () => {
+      if (!this.dragging) this.element.classList.remove('touched');
+    });
+    // 触摸事件
+    card.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        this.lastTouchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        return;
+      }
+      e.preventDefault();
+      this.element.classList.add('touched');
+      const t = e.touches[0];
+      this.onDragStart(t.clientX, t.clientY, e);
+    }, { passive: false });
+    card.addEventListener('touchend', () => {
+      this.element.classList.remove('touched');
+    });
+
+    card.addEventListener('dblclick', () => this.openFullscreen());
+    // 移动端双击
+    let lastTap = 0;
+    card.addEventListener('touchend', e => {
+      const now = Date.now();
+      if (now - lastTap < 300 && !this.dragging) {
+        this.openFullscreen();
+      }
+      lastTap = now;
+    });
+
+    photoContainer.appendChild(card);
+  }
+
+  onDragStart(px, py, e) {
+    if (state.phase !== 'falling') return;
+    this.dragging = true;
+    this.collected = true;
+    this.element.classList.add('dragging');
+    const rect = this.element.getBoundingClientRect();
+    this.dragOffsetX = px - rect.left;
+    this.dragOffsetY = py - rect.top;
+    this.targetScale = 1.08;
+  }
+
+  onDragMove(px, py) {
+    if (!this.dragging) return;
+    this.x = px - this.dragOffsetX;
+    this.y = py - this.dragOffsetY;
+    this.fallSpeed = 0;
+  }
+
+  onDragEnd() {
+    if (!this.dragging) return;
+    this.dragging = false;
+    this.element.classList.remove('dragging');
+    this.targetScale = 1;
+    // 放下一段时间后重新飘落
+    setTimeout(() => {
+      if (!this.dragging) {
+        this.fallSpeed = 0.35 + Math.random() * 0.65;
+        this.collected = false;
+      }
+    }, 5000);
+  }
+
+  onPinchMove(touches) {
+    const dist = Math.hypot(
+      touches[0].clientX - touches[1].clientX,
+      touches[0].clientY - touches[1].clientY
+    );
+    if (this.lastTouchDist > 0) {
+      const delta = dist / this.lastTouchDist;
+      this.pinchScale = Math.min(3, Math.max(0.5, this.pinchScale * delta));
+    }
+    this.lastTouchDist = dist;
+  }
+
+  onPinchEnd() {
+    this.lastTouchDist = 0;
+    // 平滑回到1
+    const animateBack = () => {
+      this.pinchScale += (1 - this.pinchScale) * 0.2;
+      if (Math.abs(this.pinchScale - 1) > 0.01) {
+        requestAnimationFrame(animateBack);
+      } else {
+        this.pinchScale = 1;
+      }
+    };
+    requestAnimationFrame(animateBack);
+  }
+
+  openFullscreen() {
+    openFullscreenViewer(state.currentPhotoList, this.index);
+  }
+
+  update() {
+    if (this.dragging) return;
+
+    // 飘落（受全局风影响）
+    this.y += this.fallSpeed;
+    this.swayPhase += this.swaySpeed;
+    this.x += Math.sin(this.swayPhase) * 0.4 + (window._globalWind || 0);
+    this.rotation += this.rotationSpeed;
+    this.scale += (this.targetScale * this.pinchScale - this.scale) * 0.15;
+
+    // 超出屏幕后重置到顶部
+    if (this.y > window.innerHeight + 200) {
+      this.y = -200 - Math.random() * 300;
+      this.x = 50 + Math.random() * (window.innerWidth - 200);
+      this.rotation = (Math.random() - 0.5) * 25;
+      this.fallSpeed = 0.35 + Math.random() * 0.65;
+      this.collected = false;
+    }
+  }
+
+  render() {
+    if (!this.element) return;
+    const transform = `translate(${this.x}px, ${this.y}px) rotate(${this.rotation}deg) scale(${this.scale})`;
+    this.element.style.transform = transform;
+  }
+
+  remove() {
+    if (this.element) {
+      this.element.remove();
+      this.element = null;
+    }
+  }
+}
+
+// ==================== 全屏查看器 ====================
+let fsCurrentList = [];
+let fsCurrentIndex = 0;
+let fsTouchStartX = 0;
+let fsTouchStartY = 0;
+let fsSwipeDelta = 0;
+
+function openFullscreenViewer(photoList, index) {
+  fsCurrentList = photoList;
+  fsCurrentIndex = index;
+  state.fullscreenIndex = index;
+  showFullscreenImage();
+  fullscreenViewer.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFullscreenViewer() {
+  fullscreenViewer.classList.remove('active');
+  state.fullscreenIndex = -1;
+  document.body.style.overflow = '';
+}
+
+function showFullscreenImage() {
+  if (fsCurrentIndex < 0 || fsCurrentIndex >= fsCurrentList.length) return;
+  const album = state.currentAlbum === 'together' ? '合照' : '独照';
+  fullscreenImg.src = `./照片/${album}/${fsCurrentList[fsCurrentIndex]}`;
+  fullscreenCounter.textContent = `${fsCurrentIndex + 1} / ${fsCurrentList.length}`;
+}
+
+function navigateFullscreen(delta) {
+  fsCurrentIndex = (fsCurrentIndex + delta + fsCurrentList.length) % fsCurrentList.length;
+  showFullscreenImage();
+}
+
+// 全屏查看器事件
+fullscreenViewer.querySelector('.closeBtn').addEventListener('click', closeFullscreenViewer);
+fullscreenViewer.querySelector('.prev').addEventListener('click', () => navigateFullscreen(-1));
+fullscreenViewer.querySelector('.next').addEventListener('click', () => navigateFullscreen(1));
+fullscreenViewer.addEventListener('click', e => {
+  if (e.target === fullscreenViewer) closeFullscreenViewer();
+});
+
+// 触摸滑动
+fullscreenViewer.addEventListener('touchstart', e => {
+  fsTouchStartX = e.touches[0].clientX;
+  fsTouchStartY = e.touches[0].clientY;
+  fsSwipeDelta = 0;
+}, { passive: true });
+
+fullscreenViewer.addEventListener('touchmove', e => {
+  fsSwipeDelta = e.touches[0].clientX - fsTouchStartX;
+  const percent = fsSwipeDelta / window.innerWidth;
+  fullscreenImg.style.transform = `translateX(${fsSwipeDelta}px)`;
+}, { passive: true });
+
+fullscreenViewer.addEventListener('touchend', () => {
+  fullscreenImg.style.transform = '';
+  if (Math.abs(fsSwipeDelta) > 80) {
+    navigateFullscreen(fsSwipeDelta > 0 ? -1 : 1);
+  }
+});
+
+// 键盘导航
+document.addEventListener('keydown', e => {
+  if (state.fullscreenIndex < 0) return;
+  if (e.key === 'ArrowLeft') navigateFullscreen(-1);
+  if (e.key === 'ArrowRight') navigateFullscreen(1);
+  if (e.key === 'Escape') closeFullscreenViewer();
+});
+
+// ==================== 照片管理 ====================
+let photoCards = [];
+
+function getAlbumFolder() {
+  return state.currentAlbum === 'together' ? '合照' : '独照';
+}
+
+function getCurrentPhotoList() {
+  return state.currentAlbum === 'together' ? PHOTO_PATHS.together : PHOTO_PATHS.solo;
+}
+
+function spawnPhotoCard() {
+  if (state.phase !== 'falling') return;
+  const list = getCurrentPhotoList();
+  const activePhotos = photoCards.filter(c => c.element !== null);
+  if (activePhotos.length >= CONFIG.maxFallingPhotos) return;
+
+  const randomIndex = Math.floor(Math.random() * list.length);
+  const album = getAlbumFolder();
+  const src = `./照片/${album}/${list[randomIndex]}`;
+  const card = new PhotoCard(src, randomIndex);
+  photoCards.push(card);
+}
+
+function clearAllPhotoCards() {
+  for (const card of photoCards) {
+    card.remove();
+  }
+  photoCards = [];
+}
+
+function switchAlbum() {
+  state.currentAlbum = state.currentAlbum === 'together' ? 'solo' : 'together';
+  toggleBtn.textContent = state.currentAlbum === 'together' ? '📷 查看独照' : '📷 查看合照';
+  // 清除现有卡片
+  clearAllPhotoCards();
+  // 重置全屏状态
+  state.currentPhotoList = getCurrentPhotoList();
+}
+
+toggleBtn.addEventListener('click', switchAlbum);
+
+// ==================== 全局鼠标/触摸事件（拖拽） ====================
+document.addEventListener('mousemove', e => {
+  for (const card of photoCards) {
+    if (card.dragging) card.onDragMove(e.clientX, e.clientY);
+  }
+});
+document.addEventListener('mouseup', () => {
+  for (const card of photoCards) {
+    if (card.dragging) card.onDragEnd();
+  }
+});
+document.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    for (const card of photoCards) {
+      if (card.lastTouchDist > 0) card.onPinchMove(e.touches);
+    }
+    return;
+  }
+  for (const card of photoCards) {
+    if (card.dragging && e.touches.length === 1) {
+      e.preventDefault();
+      card.onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }
+}, { passive: false });
+document.addEventListener('touchend', e => {
+  for (const card of photoCards) {
+    if (card.dragging && e.touches.length === 0) card.onDragEnd();
+    if (card.lastTouchDist > 0 && e.touches.length < 2) card.onPinchEnd();
+  }
+});
+
+// ==================== 留言板 ====================
+const STICKY_COLORS = [
+  '#FFD1DC', '#FFFACD', '#B5D8EB', '#C1E1C1', '#E8D5E0',
+  '#FFE4C4', '#D5E8D4', '#FADADD', '#DAE8FC', '#FFF2CC',
+];
+
+function loadMessages() {
+  try {
+    return JSON.parse(localStorage.getItem('birthday_msgs') || '[]');
+  } catch { return []; }
+}
+
+function saveMessages(msgs) {
+  try {
+    localStorage.setItem('birthday_msgs', JSON.stringify(msgs));
+  } catch { /* localStorage full */ }
+}
+
+function renderMessages() {
+  const msgs = loadMessages();
+  notesContainer.innerHTML = '';
+  // 深拷贝后反转，最新的在最上面
+  const display = [...msgs].reverse();
+  for (const msg of display) {
+    const note = document.createElement('div');
+    note.className = 'sticky-note';
+    // 使用已存储的颜色和角度，确保每次渲染一致
+    note.style.background = msg.color;
+    note.style.transform = `rotate(${msg.rotation}deg)`;
+    note.innerHTML = `
+      <div class="noteAuthor">${escapeHTML(msg.nickname)}</div>
+      <div class="noteText">${escapeHTML(msg.content)}</div>
+      <div class="noteTime">${msg.time}</div>
+    `;
+    notesContainer.appendChild(note);
+  }
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function addMessage() {
+  const nickname = msgNickname.value.trim();
+  const content = msgContentInput.value.trim();
+  if (!nickname || !content) return;
+
+  const now = new Date();
+  const timeStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const msgs = loadMessages();
+  const color = STICKY_COLORS[Math.floor(Math.random() * STICKY_COLORS.length)];
+  const rotation = (Math.random() - 0.5) * 8;
+  msgs.push({ nickname, content, time: timeStr, color, rotation });
+  saveMessages(msgs);
+
+  msgNickname.value = '';
+  msgContentInput.value = '';
+  renderMessages();
+}
+
+msgSend.addEventListener('click', addMessage);
+msgContentInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') addMessage();
+});
+
+boardToggleBtn.addEventListener('click', () => {
+  boardContent.classList.toggle('open');
+  boardToggleBtn.textContent = boardContent.classList.contains('open') ? '💬 收起留言板' : '💬 留言板';
+  if (boardContent.classList.contains('open')) {
+    renderMessages();
+  }
+});
+
+// ==================== 时光卡片 ====================
+function updateDaysCounter() {
+  const now = new Date();
+  const diff = now.getTime() - CONFIG.startDate.getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  // 数字递增动画
+  const current = parseInt(daysNum.textContent) || 0;
+  if (current !== days) {
+    animateNumber(current, days, 1200);
+  }
+}
+
+function animateNumber(from, to, duration) {
+  const start = performance.now();
+  function tick(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    // easeOutCubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    daysNum.textContent = Math.floor(from + (to - from) * eased);
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+updateDaysCounter();
+setInterval(updateDaysCounter, 60000); // 每分钟更新一次
+
+// ==================== 背景音乐（Web Audio API） ====================
+let audioCtx = null;
+let musicInterval = null;
+let musicNoteIndex = 0;
+
+// 一段轻柔的浪漫旋律（C大调五声）
+const melody = [
+  { note: 'C4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+  { note: 'G4', dur: 0.75 }, { note: 'A4', dur: 0.25 },
+  { note: 'G4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+  { note: 'C5', dur: 1 }, { note: null, dur: 0.25 },
+  { note: 'D4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
+  { note: 'A4', dur: 0.5 }, { note: 'C5', dur: 0.5 },
+  { note: 'A4', dur: 0.75 }, { note: 'G4', dur: 0.25 },
+  { note: 'E4', dur: 1.5 },
+  { note: null, dur: 0.5 },
+  { note: 'E4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
+  { note: 'C5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
+  { note: 'E5', dur: 1 }, { note: 'D5', dur: 0.5 },
+  { note: 'C5', dur: 0.5 }, { note: 'A4', dur: 0.5 },
+  { note: 'G4', dur: 1.5 },
+  { note: null, dur: 0.5 },
+  { note: 'C4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+  { note: 'G4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+  { note: 'D4', dur: 0.75 }, { note: 'E4', dur: 0.25 },
+  { note: 'C4', dur: 2 },
+];
+
+const noteFrequencies = {
+  'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'G4': 392.00,
+  'A4': 440.00, 'C5': 523.25, 'D5': 587.33, 'E5': 659.25,
+};
+
+function playNote(freq, duration, startTime) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(0.18, startTime + 0.05);
+  gain.gain.linearRampToValueAtTime(0.12, startTime + duration * 0.6);
+  gain.gain.linearRampToValueAtTime(0, startTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.1);
+}
+
+function playMelodyStep() {
+  if (!state.musicPlaying || !audioCtx) return;
+  const noteDef = melody[musicNoteIndex % melody.length];
+  const now = audioCtx.currentTime;
+  if (noteDef.note && noteFrequencies[noteDef.note]) {
+    playNote(noteFrequencies[noteDef.note], noteDef.dur, now);
+  }
+  musicNoteIndex++;
+  const nextDur = (noteDef.dur * 1000) + 40;
+  musicInterval = setTimeout(playMelodyStep, nextDur);
+}
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function startMusic() {
+  initAudio();
+  state.musicPlaying = true;
+  musicBtn.classList.add('playing');
+  musicBtn.classList.remove('paused');
+  musicBtn.textContent = '🎵';
+  musicNoteIndex = 0;
+  playMelodyStep();
+}
+
+function stopMusic() {
+  state.musicPlaying = false;
+  musicBtn.classList.remove('playing');
+  musicBtn.classList.add('paused');
+  musicBtn.textContent = '🔇';
+  if (musicInterval) {
+    clearTimeout(musicInterval);
+    musicInterval = null;
+  }
+}
+
+function toggleMusic() {
+  if (state.musicPlaying) {
+    stopMusic();
+  } else {
+    startMusic();
+  }
+}
+
+musicBtn.addEventListener('click', toggleMusic);
+
+// 首次用户交互时初始化并启动音频（仅执行一次有效操作）
+let audioInitialized = false;
+document.addEventListener('click', function initAudioOnce() {
+  if (audioInitialized) return;
+  initAudio();
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().then(() => {
+      if (state.musicPlaying && !musicInterval) {
+        startMusic();
+      }
+    });
+  } else if (audioCtx && audioCtx.state === 'running') {
+    if (state.musicPlaying && !musicInterval) startMusic();
+  }
+  audioInitialized = true;
+});
+
+// ==================== 主渲染循环 ====================
+const heartCenterX = window.innerWidth / 2;
+let heartCenterY = window.innerHeight / 2;
+let globalTime = 0;
+let lastSpawnTime = 0;
+let photoFallStarted = false;
+
+function animate(timestamp) {
+  requestAnimationFrame(animate);
+
+  globalTime = timestamp * 0.001; // 秒为单位
+  const dt = Math.min((timestamp - (animate._lastTs || timestamp)) * 0.001, 0.1);
+  animate._lastTs = timestamp;
+
+  heartCenterX = window.innerWidth / 2;
+  heartCenterY = window.innerHeight * 0.45;
+
+  // 轻柔的全局风场，随时间缓慢变化（花瓣和照片共享）
+  const wind = Math.sin(globalTime * 0.3) * 0.15 + Math.sin(globalTime * 0.7) * 0.08;
+  window._globalWind = wind;
+
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+  // ---- 阶段管理 ----
+  if (state.phase === 'heart') {
+    state.heartTime = timestamp;
+    if (timestamp > CONFIG.heartDuration) {
+      state.phase = 'bursting';
+      state.burstStart = timestamp;
+      // 初始化所有粒子的花瓣状态（带向外爆发速度）
+      const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
+      for (const p of particles) {
+        const pos = p.getHeartPos(scale, globalTime);
+        p.initPetal(pos, heartCenterX, heartCenterY);
+        // 爆发阶段使用更强的初始速度
+        p.petalVX *= 2.5;
+        p.petalVY *= 2.5;
+      }
+      // 显示标题
+      heroText.classList.add('visible');
+    }
+  }
+
+  // 爆发过渡到飘落
+  if (state.phase === 'bursting') {
+    const burstElapsed = timestamp - state.burstStart;
+    if (burstElapsed > CONFIG.burstDuration) {
+      state.phase = 'falling';
+      photoFallStarted = true;
+      lastSpawnTime = 0; // 立即触发首次照片生成
+      // 降低粒子速度，转为轻柔飘落
+      for (const p of particles) {
+        p.petalVX *= 0.3;
+        p.petalVY *= 0.3;
+      }
+    }
+  }
+
+  // ---- 绘制萤火虫（始终显示） ----
+  for (const s of sparkles) {
+    s.update();
+    s.draw(ctx, globalTime);
+  }
+
+  // ---- 爱心阶段：绘制心脏粒子 ----
+  if (state.phase === 'heart') {
+    const elapsed = timestamp * 0.001;
+    const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
+    // 入场渐显
+    const fadeIn = Math.min(elapsed / 0.8, 1);
+
+    for (const p of particles) {
+      const pos = p.getHeartPos(scale, elapsed);
+      const x = heartCenterX + pos.x;
+      const y = heartCenterY + pos.y;
+      p.rotation += p.rotationSpeed;
+      p.updateTrail(x, y);
+      p.drawHeart(ctx, x, y, fadeIn * 0.9);
+    }
+
+    // 绘制爱心中心微光
+    const glowAlpha = 0.15 + Math.sin(elapsed * 2.5) * 0.05;
+    const glow = ctx.createRadialGradient(heartCenterX, heartCenterY - 5, 0,
+      heartCenterX, heartCenterY, scale * 8);
+    glow.addColorStop(0, `rgba(255, 150, 180, ${glowAlpha * 2})`);
+    glow.addColorStop(1, 'rgba(255, 150, 180, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(heartCenterX, heartCenterY - 5, scale * 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ---- 爆发/飘落阶段：绘制花瓣 ----
+  if (state.phase === 'bursting' || state.phase === 'falling') {
+    const burstElapsed = (timestamp - (state.burstStart || timestamp)) * 0.001;
+    const fadeIn = Math.min(burstElapsed / 0.4, 1);
+    // 爆发阶段：降低重力让粒子飞得更远
+    const gravity = state.phase === 'bursting' ? 0.008 : 0.03;
+
+    for (const p of particles) {
+      p.updatePetal(gravity, wind);
+      p.drawPetal(ctx, p.petalX, p.petalY, fadeIn * 0.85);
+    }
+  }
+
+  // ---- 照片飘落管理 ----
+  if (photoFallStarted && state.phase === 'falling') {
+    // 首次进入飘落阶段时，批量生成照片形成花雨效果
+    if (lastSpawnTime === 0) {
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => spawnPhotoCard(), i * 200);
+      }
+      lastSpawnTime = timestamp;
+    } else if (timestamp - lastSpawnTime > CONFIG.photoFallInterval) {
+      spawnPhotoCard();
+      lastSpawnTime = timestamp;
+    }
+  }
+
+  // ---- 更新和渲染照片卡片 ----
+  let fallingCount = 0;
+  let collectedNow = 0;
+  for (const card of photoCards) {
+    if (!card.element) continue;
+    card.update();
+    card.render();
+    if (!card.dragging && card.fallSpeed > 0) fallingCount++;
+    if (card.collected) collectedNow++;
+  }
+
+  // 清理已移除的卡片
+  photoCards = photoCards.filter(c => c.element !== null);
+
+  // 更新信息面板
+  infoFalling.textContent = fallingCount;
+  infoCollected.textContent = collectedNow;
+  state.collectedCount = collectedNow;
+
+  // ---- 更新音乐 ----
+  if (state.musicPlaying && audioCtx && audioCtx.state === 'running' && !musicInterval) {
+    musicNoteIndex = 0;
+    playMelodyStep();
+  }
+}
+animate._lastTs = 0;
+
+// 窗口大小变化时更新心脏中心
+window.addEventListener('resize', () => {
+  heartCenterY = window.innerHeight * 0.45;
+  resizeCanvas();
+});
+
+// ==================== 初始化 ====================
+function init() {
+  state.currentPhotoList = getCurrentPhotoList();
+  updateDaysCounter();
+  renderMessages();
+
+  // 浏览器自动播放策略限制，标记为"想播放"，等待用户首次交互
+  state.musicPlaying = true;
+  musicBtn.classList.add('playing');
+  musicBtn.classList.remove('paused');
+  musicBtn.textContent = '🎵';
+
+  // 启动动画循环
+  requestAnimationFrame(animate);
+}
+
+// 页面加载完成后初始化
+window.addEventListener('DOMContentLoaded', init);
+
+
+// ==================== 响应式调整 ====================
+window.addEventListener('resize', () => {
+  // 重新分配萤火虫位置
+  for (const s of sparkles) {
+    s.x = Math.min(s.x, window.innerWidth);
+    s.y = Math.min(s.y, window.innerHeight);
+  }
+});
+
+console.log('💕 欢迎来到她的生日祝福网站！');
+console.log('✨ 爱心粒子数：' + CONFIG.particleCount);
+console.log('📸 合照：' + PHOTO_PATHS.together.length + ' 张 | 独照：' + PHOTO_PATHS.solo.length + ' 张');
+console.log('🎵 音乐：Web Audio API 生成');
+console.log('💌 留言板：localStorage 持久化');
+console.log('💝 在一起的天数从 2026年1月20日 开始计算');
+</script>
+</body>
+</html>
