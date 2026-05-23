@@ -316,11 +316,26 @@ function spawnGhost() {
   const key = state.currentPage === 1 ? '合照' : '独照';
   const imgs = ghostImages[key];
   if (!imgs || imgs.length === 0) return;
-  // 找一张已加载完成的图
   const loaded = imgs.filter(i => i.complete && i.naturalWidth > 0);
   if (loaded.length === 0) return;
-  const img = loaded[Math.floor(Math.random() * loaded.length)];
-  ghosts.push(new GhostPhoto(img, window.innerWidth, window.innerHeight));
+  // 最多同时存在 3 个虚影
+  if (ghosts.length >= 3) return;
+
+  // 尝试找一个不与现有虚影重叠的位置（最多试10次）
+  const sw = window.innerWidth, sh = window.innerHeight;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const img = loaded[Math.floor(Math.random() * loaded.length)];
+    const g = new GhostPhoto(img, sw, sh);
+    // 检查与现有虚影的距离
+    const minDist = Math.min(sw, sh) * 0.28;
+    let tooClose = false;
+    for (const existing of ghosts) {
+      const dx = g.x - existing.x;
+      const dy = g.y - existing.y;
+      if (Math.hypot(dx, dy) < minDist) { tooClose = true; break; }
+    }
+    if (!tooClose) { ghosts.push(g); return; }
+  }
 }
 
 // ==================== 蛋糕 ====================
@@ -609,14 +624,22 @@ function animate(ts){
 
   // ---- 背景虚影，在萤火虫之前绘制 ----
   if (state.currentPage >= 1 && state.currentPage <= 2) {
-    if (globalTime - ghostLastSpawn > 2.8 + Math.random() * 1.5) {
+    // 在照片页：正常生成和更新
+    if (globalTime - ghostLastSpawn > 3.5) {
       spawnGhost();
       ghostLastSpawn = globalTime;
     }
     ghosts = ghosts.filter(g => g.update(0.016));
     for (const g of ghosts) g.draw(ctx);
   } else {
-    ghosts = [];
+    // 离开照片页：加速虚影的生命周期使其快速淡出
+    for (const g of ghosts) g.life += 0.04;
+    ghosts = ghosts.filter(g => {
+      g.update(0.016);
+      const a = g.alpha();
+      return a > 0.003;
+    });
+    for (const g of ghosts) g.draw(ctx);
   }
 
   for(const s of sparkles){s.update();s.draw(ctx,globalTime)}
