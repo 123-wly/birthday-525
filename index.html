@@ -247,6 +247,7 @@ html,body{
   <span class="dot active"></span>
   <span class="dot"></span>
   <span class="dot"></span>
+  <span class="dot"></span>
 </div>
 
 <div id="fullscreenViewer">
@@ -494,8 +495,8 @@ for (let i = 0; i < CONFIG.sparkleCount; i++) sparkles.push(new Sparkle());
 
 // ==================== 照片卡片 ====================
 const activePhotoIndices = [];
-function getAlbum(p) { return p===0?'合照':'独照'; }
-function getList(p) { return p===0?PHOTO_PATHS.together:PHOTO_PATHS.solo; }
+function getAlbum(p) { return p===1?'合照':'独照'; }
+function getList(p) { return p===1?PHOTO_PATHS.together:PHOTO_PATHS.solo; }
 
 function getDistributedX() {
   const m = 30, uw = window.innerWidth - m*2;
@@ -640,7 +641,8 @@ class PhotoCard {
 let photoCards = [];
 function spawnPhotoCard() {
   if (state.phase !== 'falling') return;
-  if (state.currentPage >= 2) return;
+  // 仅在第1页(合照)和第2页(独照)生成照片
+  if (state.currentPage < 1 || state.currentPage > 2) return;
   const active = photoCards.filter(c => c.element !== null);
   if (active.length >= CONFIG.maxFallingPhotos) return;
   const list = getList(state.currentPage);
@@ -659,37 +661,39 @@ function clearAllPhotoCards() {
   activePhotoIndices.length = 0;
 }
 
-// ==================== 页面切换 ====================
+// ==================== 页面管理（4页） ====================
+// 第0页=爱心，第1页=合照，第2页=独照，第3页=留言板
 function updatePageUI() {
   const p = state.currentPage;
   pageDots.forEach((d,i) => d.classList.toggle('active', i === p));
 
-  // Canvas：只在照片页显示
-  canvas.classList.toggle('hidden', p >= 2);
-  // 照片容器：只在照片页显示
-  photoContainer.classList.toggle('hidden', p >= 2);
-  // 信息面板
-  infoPanel.style.opacity = p >= 2 ? '0' : '1';
+  // Canvas：第3页（留言板）隐藏
+  canvas.classList.toggle('hidden', p >= 3);
+  // 照片容器：仅在第1-2页显示
+  photoContainer.classList.toggle('hidden', p < 1 || p > 2);
+  // 信息面板：仅在第1-2页显示
+  infoPanel.style.opacity = (p >= 1 && p <= 2) ? '1' : '0';
+  // 开场文字：仅首页显示（移除inline让CSS class控制），其他页强制隐藏
+  if (p === 0) { heroText.style.opacity = ''; }
+  else { heroText.style.opacity = '0'; }
   // 留言板
-  if (p === 2) {
-    messagePage.classList.add('active');
-    renderMessages();
-  } else {
-    messagePage.classList.remove('active');
-  }
+  if (p === 3) { messagePage.classList.add('active'); renderMessages(); }
+  else { messagePage.classList.remove('active'); }
 }
 
 function switchToPage(newPage) {
-  if (state.currentPage === newPage) return;
-  const oldPage = state.currentPage;
+  if (state.currentPage === newPage || newPage < 0 || newPage > 3) return;
   state.currentPage = newPage;
   clearAllPhotoCards();
   updatePageUI();
 
-  // 切换到照片页时触发重新生成
-  if (newPage < 2 && state.phase === 'falling') {
+  // 第1-2页且动画已进入飘落阶段时触发照片生成
+  if (newPage >= 1 && newPage <= 2 && state.phase === 'falling') {
     photoFallStarted = true;
     lastSpawnTime = 0;
+  } else if (newPage === 0) {
+    // 回到首页时不生成照片
+    photoFallStarted = false;
   }
 }
 
@@ -757,7 +761,8 @@ let swipeVelocity = 0, swipeLastY = 0, swipeLastT = 0;
 document.addEventListener('touchstart', e => {
   if (state.fullscreenIndex >= 0) return;
   // 如果在留言板页面且触摸在留言板内，不拦截
-  if (state.currentPage === 2 && e.target.closest('#messagePage')) return;
+  // 留言板页：仅当触摸输入框或按钮时不拦截，其他区域允许滑动
+  if (state.currentPage === 3 && e.target.closest('input,button')) return;
   // 如果触摸在照片上且单指，交给照片拖拽
   if (e.target.closest('.photo-card') && e.touches.length === 1) return;
 
@@ -799,7 +804,7 @@ document.addEventListener('touchend', () => {
 
   if (shouldSwitch) {
     const goNext = swipeDY < 0 || swipeVelocity < -velocityThreshold; // 向上滑=下一页
-    if (goNext && state.currentPage < 2) {
+    if (goNext && state.currentPage < 3) {
       switchToPage(state.currentPage + 1);
     } else if (!goNext && state.currentPage > 0) {
       switchToPage(state.currentPage - 1);
@@ -813,11 +818,11 @@ document.addEventListener('touchend', () => {
 let wheelAccum = 0;
 document.addEventListener('wheel', e => {
   if (state.fullscreenIndex >= 0) return;
-  if (e.target.closest('#messagePage') && state.currentPage === 2) return;
+  if (state.currentPage === 3 && e.target.closest('input,button')) return;
   if (e.target.closest('.photo-card')) return;
   wheelAccum += e.deltaY;
   if (Math.abs(wheelAccum) > 80) {
-    if (wheelAccum > 0 && state.currentPage < 2) {
+    if (wheelAccum > 0 && state.currentPage < 3) {
       switchToPage(state.currentPage + 1);
     } else if (wheelAccum < 0 && state.currentPage > 0) {
       switchToPage(state.currentPage - 1);
@@ -967,6 +972,13 @@ function animate(ts){
   if(state.phase==='bursting'&&(rTs-state.burstStart)>CONFIG.burstDuration){
     state.phase='falling';photoFallStarted=true;lastSpawnTime=0;
     for(const p of particles){p.petalVX*=0.3;p.petalVY*=0.3;}
+    // 首页爱心爆开后1.5秒自动滑到合照页
+    if(state.currentPage===0){
+      setTimeout(()=>{if(state.currentPage===0)switchToPage(1);},1500);
+    } else {
+      // 非首页进入falling时立即生成照片
+      lastSpawnTime=0;
+    }
   }
 
   // 萤火虫
@@ -987,15 +999,15 @@ function animate(ts){
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(hCX,hCY-5,sc*8,0,Math.PI*2);ctx.fill();
   }
 
-  // 花瓣（仅在前两页显示，第3页 Canvas 已 hidden）
-  if((state.phase==='bursting'||state.phase==='falling')&&state.currentPage<2){
+  // 花瓣（第0-2页显示，第3页留言板不显示）
+  if((state.phase==='bursting'||state.phase==='falling')&&state.currentPage<3){
     const be=(rTs-(state.burstStart||0))*0.001,fi=Math.min(be/0.4,1);
     const gv=state.phase==='bursting'?0.008:0.03;
     for(const p of particles){p.updatePetal(gv,wind);p.drawPetal(ctx,p.petalX,p.petalY,fi*0.85);}
   }
 
-  // 照片生成
-  if(photoFallStarted&&state.phase==='falling'&&state.currentPage<2){
+  // 照片生成（仅第1-2页）
+  if(photoFallStarted&&state.phase==='falling'&&state.currentPage>=1&&state.currentPage<=2){
     if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*250);lastSpawnTime=rTs;}
     else if(rTs-lastSpawnTime>CONFIG.photoFallInterval){spawnPhotoCard();lastSpawnTime=rTs;}
   }
