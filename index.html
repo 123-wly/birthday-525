@@ -312,6 +312,8 @@ class GhostPhoto {
   }
 }
 
+const ghostRecent = []; // 最近用过的虚影索引，避免重复
+
 function spawnGhost() {
   const key = state.currentPage === 1 ? '合照' : '独照';
   const imgs = ghostImages[key];
@@ -321,10 +323,21 @@ function spawnGhost() {
   // 最多同时存在 3 个虚影
   if (ghosts.length >= 3) return;
 
+  // 排除最近用过的照片（保留最近5张记录）
+  const available = [];
+  for (let i = 0; i < loaded.length; i++) {
+    if (!ghostRecent.includes(i)) available.push(i);
+  }
+  // 如果全部都被排除了，重置
+  if (available.length === 0) { ghostRecent.length = 0; available.push(...loaded.keys()); }
+  const pick = available[Math.floor(Math.random() * available.length)];
+  ghostRecent.push(pick);
+  if (ghostRecent.length > 6) ghostRecent.shift();
+
   // 尝试找一个不与现有虚影重叠的位置（最多试10次）
   const sw = window.innerWidth, sh = window.innerHeight;
+  const img = loaded[pick];
   for (let attempt = 0; attempt < 10; attempt++) {
-    const img = loaded[Math.floor(Math.random() * loaded.length)];
     const g = new GhostPhoto(img, sw, sh);
     // 检查与现有虚影的距离
     const minDist = Math.min(sw, sh) * 0.28;
@@ -495,7 +508,7 @@ function switchToPage(np){
   let ta=0;const td=250,ts=performance.now(),ov=document.getElementById('swipeOverlay');
   function trans(t){const e=t-ts,p=Math.min(e/td,1);ta=p<0.5?p*2*0.3:(1-p)*2*0.3;ov.style.opacity=ta;ov.style.background='rgba(255,255,255,'+ta+')';if(p<1)requestAnimationFrame(trans);else{ov.style.opacity='0';ov.style.background=''}}
   requestAnimationFrame(trans);
-  state.currentPage=np;clearAllPhotoCards();updatePageUI();
+  state.currentPage=np;clearAllPhotoCards();updatePageUI();ghostRecent.length=0;
   if(np===1)showPageOverlay('这是美好的我们');
   if(np===2)showPageOverlay('这是美美的萌萌');
   if(np>=1&&np<=2&&state.phase==='falling'){photoFallStarted=true;lastSpawnTime=0}
