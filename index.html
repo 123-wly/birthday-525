@@ -451,6 +451,9 @@ html, body {
 <!-- 粒子画布 -->
 <canvas id="particleCanvas"></canvas>
 
+<!-- 调试面板（定位问题用，确认修复后可删除） -->
+<div id="debugPanel" style="position:fixed;top:0;left:0;z-index:999;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;padding:6px;max-width:100%;white-space:pre-line;pointer-events:none;font-family:monospace;max-height:50vh;overflow:hidden;"></div>
+
 <!-- 开场标题 -->
 <div id="heroText">
   <div class="title">🎂 生日快乐 🎂</div>
@@ -853,6 +856,12 @@ class PhotoCard {
     `;
     this.element = card;
     this.imgElement = card.querySelector('img');
+    this.imgElement.addEventListener('error', () => {
+      debug('照片加载失败: ' + this.imgSrc);
+    });
+    this.imgElement.addEventListener('load', () => {
+      // 照片加载成功（不记录日志，避免刷屏）
+    });
 
     // 鼠标事件
     card.addEventListener('mousedown', e => this.onDragStart(e.clientX, e.clientY, e));
@@ -1071,6 +1080,7 @@ function getCurrentPhotoList() {
   return state.currentAlbum === 'together' ? PHOTO_PATHS.together : PHOTO_PATHS.solo;
 }
 
+let spawnDebugged = false;
 function spawnPhotoCard() {
   if (state.phase !== 'falling') return;
   const list = getCurrentPhotoList();
@@ -1080,8 +1090,16 @@ function spawnPhotoCard() {
   const randomIndex = Math.floor(Math.random() * list.length);
   const album = getAlbumFolder();
   const src = `./照片/${album}/${list[randomIndex]}`;
-  const card = new PhotoCard(src, randomIndex);
-  photoCards.push(card);
+  if (!spawnDebugged) {
+    spawnDebugged = true;
+    debug('首张照片 src=' + src);
+  }
+  try {
+    const card = new PhotoCard(src, randomIndex);
+    photoCards.push(card);
+  } catch (err) {
+    debug('照片创建失败: ' + err.message);
+  }
 }
 
 function clearAllPhotoCards() {
@@ -1485,143 +1503,169 @@ let lastSpawnTime = 0;
 let photoFallStarted = false;
 let animationStartTs = null; // 首帧时间戳，用于相对计时
 
+let phaseLogged = { heart: false, bursting: false, falling: false, firstFrame: false };
+
 function animate(timestamp) {
   requestAnimationFrame(animate);
 
-  // 记录首帧时间戳，所有阶段计时均基于相对时间
-  if (animationStartTs === null) animationStartTs = timestamp;
-  const relativeTs = timestamp - animationStartTs;
+  try {
+    // 记录首帧时间戳，所有阶段计时均基于相对时间
+    if (animationStartTs === null) animationStartTs = timestamp;
+    const relativeTs = timestamp - animationStartTs;
 
-  globalTime = relativeTs * 0.001; // 秒为单位
+    if (!phaseLogged.firstFrame) {
+      phaseLogged.firstFrame = true;
+      debug('首帧 - ts=' + relativeTs.toFixed(0) + 'ms canvas=' + canvas.width + 'x' + canvas.height + ' ctx=' + !!ctx);
+    }
 
-  heartCenterX = window.innerWidth / 2;
-  heartCenterY = window.innerHeight * 0.45;
+    globalTime = relativeTs * 0.001; // 秒为单位
 
-  // 轻柔的全局风场，随时间缓慢变化（花瓣和照片共享）
-  const wind = Math.sin(globalTime * 0.3) * 0.15 + Math.sin(globalTime * 0.7) * 0.08;
-  window._globalWind = wind;
+    heartCenterX = window.innerWidth / 2;
+    heartCenterY = window.innerHeight * 0.45;
 
-  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    // 轻柔的全局风场，随时间缓慢变化（花瓣和照片共享）
+    const wind = Math.sin(globalTime * 0.3) * 0.15 + Math.sin(globalTime * 0.7) * 0.08;
+    window._globalWind = wind;
 
-  // ---- 阶段管理（使用相对时间） ----
-  if (state.phase === 'heart') {
-    state.heartTime = relativeTs;
-    if (relativeTs > CONFIG.heartDuration) {
-      state.phase = 'bursting';
-      state.burstStart = relativeTs;
-      // 初始化所有粒子的花瓣状态（带向外爆发速度）
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    // ---- 阶段管理（使用相对时间） ----
+    if (state.phase === 'heart') {
+      state.heartTime = relativeTs;
+      if (relativeTs > CONFIG.heartDuration) {
+        state.phase = 'bursting';
+        state.burstStart = relativeTs;
+        debug('爱心→爆发 转换 ts=' + relativeTs.toFixed(0));
+        // 初始化所有粒子的花瓣状态（带向外爆发速度）
+        const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
+        for (const p of particles) {
+          const pos = p.getHeartPos(scale, globalTime);
+          p.initPetal(pos, heartCenterX, heartCenterY);
+          // 爆发阶段使用更强的初始速度
+          p.petalVX *= 2.5;
+          p.petalVY *= 2.5;
+        }
+        // 显示标题
+        heroText.classList.add('visible');
+      }
+    }
+
+    // 爆发过渡到飘落
+    if (state.phase === 'bursting') {
+      const burstElapsed = relativeTs - state.burstStart;
+      if (burstElapsed > CONFIG.burstDuration) {
+        state.phase = 'falling';
+        photoFallStarted = true;
+        lastSpawnTime = 0; // 立即触发首次照片生成
+        debug('爆发→飘落 转换，开始照片生成');
+        // 降低粒子速度，转为轻柔飘落
+        for (const p of particles) {
+          p.petalVX *= 0.3;
+          p.petalVY *= 0.3;
+        }
+      }
+    }
+
+    // ---- 绘制萤火虫（始终显示） ----
+    for (const s of sparkles) {
+      s.update();
+      s.draw(ctx, globalTime);
+    }
+
+    // ---- 爱心阶段：绘制心脏粒子 ----
+    if (state.phase === 'heart') {
+      const elapsed = relativeTs * 0.001;
       const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
+      // 入场渐显
+      const fadeIn = Math.min(elapsed / 0.8, 1);
+
       for (const p of particles) {
-        const pos = p.getHeartPos(scale, globalTime);
-        p.initPetal(pos, heartCenterX, heartCenterY);
-        // 爆发阶段使用更强的初始速度
-        p.petalVX *= 2.5;
-        p.petalVY *= 2.5;
+        const pos = p.getHeartPos(scale, elapsed);
+        const x = heartCenterX + pos.x;
+        const y = heartCenterY + pos.y;
+        p.rotation += p.rotationSpeed;
+        p.updateTrail(x, y);
+        p.drawHeart(ctx, x, y, fadeIn * 0.9);
       }
-      // 显示标题
-      heroText.classList.add('visible');
-    }
-  }
 
-  // 爆发过渡到飘落
-  if (state.phase === 'bursting') {
-    const burstElapsed = relativeTs - state.burstStart;
-    if (burstElapsed > CONFIG.burstDuration) {
-      state.phase = 'falling';
-      photoFallStarted = true;
-      lastSpawnTime = 0; // 立即触发首次照片生成
-      // 降低粒子速度，转为轻柔飘落
+      // 绘制爱心中心微光
+      const glowAlpha = 0.15 + Math.sin(elapsed * 2.5) * 0.05;
+      const glow = ctx.createRadialGradient(heartCenterX, heartCenterY - 5, 0,
+        heartCenterX, heartCenterY, scale * 8);
+      glow.addColorStop(0, `rgba(255, 150, 180, ${glowAlpha * 2})`);
+      glow.addColorStop(1, 'rgba(255, 150, 180, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(heartCenterX, heartCenterY - 5, scale * 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (!phaseLogged.heart) {
+        phaseLogged.heart = true;
+        debug('爱心绘制中 scale=' + scale.toFixed(1) + ' particles=' + particles.length);
+      }
+    }
+
+    // ---- 爆发/飘落阶段：绘制花瓣 ----
+    if (state.phase === 'bursting' || state.phase === 'falling') {
+      if (state.phase === 'bursting' && !phaseLogged.bursting) {
+        phaseLogged.bursting = true;
+        debug('爆发阶段绘制花瓣');
+      }
+      const burstElapsed = (relativeTs - (state.burstStart || 0)) * 0.001;
+      const fadeIn = Math.min(burstElapsed / 0.4, 1);
+      // 爆发阶段：降低重力让粒子飞得更远
+      const gravity = state.phase === 'bursting' ? 0.008 : 0.03;
+
       for (const p of particles) {
-        p.petalVX *= 0.3;
-        p.petalVY *= 0.3;
+        p.updatePetal(gravity, wind);
+        p.drawPetal(ctx, p.petalX, p.petalY, fadeIn * 0.85);
       }
     }
-  }
 
-  // ---- 绘制萤火虫（始终显示） ----
-  for (const s of sparkles) {
-    s.update();
-    s.draw(ctx, globalTime);
-  }
-
-  // ---- 爱心阶段：绘制心脏粒子 ----
-  if (state.phase === 'heart') {
-    const elapsed = relativeTs * 0.001;
-    const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
-    // 入场渐显
-    const fadeIn = Math.min(elapsed / 0.8, 1);
-
-    for (const p of particles) {
-      const pos = p.getHeartPos(scale, elapsed);
-      const x = heartCenterX + pos.x;
-      const y = heartCenterY + pos.y;
-      p.rotation += p.rotationSpeed;
-      p.updateTrail(x, y);
-      p.drawHeart(ctx, x, y, fadeIn * 0.9);
-    }
-
-    // 绘制爱心中心微光
-    const glowAlpha = 0.15 + Math.sin(elapsed * 2.5) * 0.05;
-    const glow = ctx.createRadialGradient(heartCenterX, heartCenterY - 5, 0,
-      heartCenterX, heartCenterY, scale * 8);
-    glow.addColorStop(0, `rgba(255, 150, 180, ${glowAlpha * 2})`);
-    glow.addColorStop(1, 'rgba(255, 150, 180, 0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(heartCenterX, heartCenterY - 5, scale * 8, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // ---- 爆发/飘落阶段：绘制花瓣 ----
-  if (state.phase === 'bursting' || state.phase === 'falling') {
-    const burstElapsed = (relativeTs - (state.burstStart || 0)) * 0.001;
-    const fadeIn = Math.min(burstElapsed / 0.4, 1);
-    // 爆发阶段：降低重力让粒子飞得更远
-    const gravity = state.phase === 'bursting' ? 0.008 : 0.03;
-
-    for (const p of particles) {
-      p.updatePetal(gravity, wind);
-      p.drawPetal(ctx, p.petalX, p.petalY, fadeIn * 0.85);
-    }
-  }
-
-  // ---- 照片飘落管理 ----
-  if (photoFallStarted && state.phase === 'falling') {
-    // 首次进入飘落阶段时，批量生成照片形成花雨效果
-    if (lastSpawnTime === 0) {
-      for (let i = 0; i < 5; i++) {
-        setTimeout(() => spawnPhotoCard(), i * 200);
+    // ---- 照片飘落管理 ----
+    if (photoFallStarted && state.phase === 'falling') {
+      if (!phaseLogged.falling) {
+        phaseLogged.falling = true;
+        debug('开始飘落阶段 相册=' + state.currentAlbum + ' 照片数=' + state.currentPhotoList.length);
       }
-      lastSpawnTime = relativeTs;
-    } else if (relativeTs - lastSpawnTime > CONFIG.photoFallInterval) {
-      spawnPhotoCard();
-      lastSpawnTime = relativeTs;
+      // 首次进入飘落阶段时，批量生成照片形成花雨效果
+      if (lastSpawnTime === 0) {
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => spawnPhotoCard(), i * 200);
+        }
+        lastSpawnTime = relativeTs;
+      } else if (relativeTs - lastSpawnTime > CONFIG.photoFallInterval) {
+        spawnPhotoCard();
+        lastSpawnTime = relativeTs;
+      }
     }
-  }
 
-  // ---- 更新和渲染照片卡片 ----
-  let fallingCount = 0;
-  let collectedNow = 0;
-  for (const card of photoCards) {
-    if (!card.element) continue;
-    card.update();
-    card.render();
-    if (!card.dragging && card.fallSpeed > 0) fallingCount++;
-    if (card.collected) collectedNow++;
-  }
+    // ---- 更新和渲染照片卡片 ----
+    let fallingCount = 0;
+    let collectedNow = 0;
+    for (const card of photoCards) {
+      if (!card.element) continue;
+      card.update();
+      card.render();
+      if (!card.dragging && card.fallSpeed > 0) fallingCount++;
+      if (card.collected) collectedNow++;
+    }
 
-  // 清理已移除的卡片
-  photoCards = photoCards.filter(c => c.element !== null);
+    // 清理已移除的卡片
+    photoCards = photoCards.filter(c => c.element !== null);
 
-  // 更新信息面板
-  infoFalling.textContent = fallingCount;
-  infoCollected.textContent = collectedNow;
-  state.collectedCount = collectedNow;
+    // 更新信息面板
+    infoFalling.textContent = fallingCount;
+    infoCollected.textContent = collectedNow;
+    state.collectedCount = collectedNow;
 
-  // ---- 更新音乐 ----
-  if (state.musicPlaying && audioCtx && audioCtx.state === 'running' && !musicInterval) {
-    musicNoteIndex = 0;
-    playMelodyStep();
+    // ---- 更新音乐 ----
+    if (state.musicPlaying && audioCtx && audioCtx.state === 'running' && !musicInterval) {
+      musicNoteIndex = 0;
+      playMelodyStep();
+    }
+  } catch (err) {
+    debug('动画错误: ' + err.message + ' @ ' + err.stack?.split('\n')[1]?.trim());
   }
 }
 animate._lastTs = 0;
@@ -1633,7 +1677,29 @@ window.addEventListener('resize', () => {
 });
 
 // ==================== 初始化 ====================
+let debugLog = [];
+function debug(msg) {
+  debugLog.push(`[${(performance.now()/1000).toFixed(1)}s] ${msg}`);
+  if (debugLog.length > 20) debugLog.shift();
+  console.log(msg);
+  // 在页面上也显示关键状态
+  const el = document.getElementById('debugPanel');
+  if (el) el.textContent = debugLog.join('\n');
+}
+
 function init() {
+  debug('初始化开始 - innerW=' + window.innerWidth + ' innerH=' + window.innerHeight + ' dpr=' + devicePixelRatio);
+
+  // 确保 Canvas 尺寸正确（移动端可能延迟获取）
+  if (window.innerHeight > 0) {
+    resizeCanvas();
+  }
+  // 延迟再设置一次，防止移动端初始化时尺寸为0
+  setTimeout(() => {
+    resizeCanvas();
+    debug('延迟resize - innerW=' + window.innerWidth + ' innerH=' + window.innerHeight);
+  }, 500);
+
   state.currentPhotoList = getCurrentPhotoList();
   updateDaysCounter();
   renderMessages();
@@ -1646,6 +1712,7 @@ function init() {
 
   // 启动动画循环
   requestAnimationFrame(animate);
+  debug('动画循环已启动');
 }
 
 // 页面加载完成后初始化
