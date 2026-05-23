@@ -284,13 +284,13 @@ class GhostPhoto {
     this.rotation = (Math.random() - 0.5) * 20;
   }
   update(dt) {
-    this.life += dt * 0.12;
+    this.life += dt * 0.22;
     return this.life < this.maxLife;
   }
   alpha() {
-    if (this.life < 0.6) return this.life / 0.6 * 0.13;
-    if (this.life < this.maxLife - 1.0) return 0.13;
-    return (this.maxLife - this.life) / 1.0 * 0.13;
+    if (this.life < 0.6) return this.life / 0.6 * 0.2;
+    if (this.life < this.maxLife - 0.6) return 0.2;
+    return (this.maxLife - this.life) / 0.6 * 0.2;
   }
   currentScale() {
     return this.startScale + (this.endScale - this.startScale) * Math.min(this.life / this.maxLife, 1);
@@ -633,7 +633,7 @@ function animate(ts){
     for (const g of ghosts) g.draw(ctx);
   } else {
     // 离开照片页：加速虚影的生命周期使其快速淡出
-    for (const g of ghosts) g.life += 0.04;
+    for (const g of ghosts) g.life += 0.08;
     ghosts = ghosts.filter(g => {
       g.update(0.016);
       const a = g.alpha();
