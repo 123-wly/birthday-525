@@ -549,6 +549,9 @@ function drawCake(ctx, time, alpha) {
   ctx.restore();
 }
 
+const particles = [];
+for (let i = 0; i < CONFIG.particleCount; i++) particles.push(new Particle());
+
 // ==================== 萤火虫 ====================
 class Sparkle {
   constructor() { this.reset(true); }
@@ -1154,14 +1157,7 @@ function animate(ts){
 
   // 音乐
   if(state.musicPlaying&&audioCtx&&audioCtx.state==='running'&&!musicInterval){musicNoteIndex=0;pMS();}
-  } catch(e) {
-    // 动画循环出错时在页面顶部显示错误
-    const errEl = document.getElementById('daysCard');
-    if (errEl && !window._animErrorShown) {
-      window._animErrorShown = true;
-      errEl.textContent = '动画错误: ' + e.message;
-    }
-  }
+  } catch(e) { /* 静默恢复，避免一帧错误影响整体 */ }
 }
 
 // ==================== 初始化 ====================
