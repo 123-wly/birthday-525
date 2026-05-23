@@ -452,7 +452,7 @@ html, body {
 <canvas id="particleCanvas"></canvas>
 
 <!-- 调试面板（定位问题用，确认修复后可删除） -->
-<div id="debugPanel" style="position:fixed;top:0;left:0;z-index:999;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;padding:6px;max-width:100%;white-space:pre-line;pointer-events:none;font-family:monospace;max-height:50vh;overflow:hidden;"></div>
+<div id="debugPanel" style="position:fixed;top:8px;left:8px;z-index:9999;background:rgba(255,0,0,0.9);color:#fff;font-size:12px;padding:8px;max-width:95vw;white-space:pre-line;font-family:monospace;max-height:50vh;overflow:hidden;border:2px solid yellow;border-radius:4px;">⏳ 等待JS初始化...</div>
 
 <!-- 开场标题 -->
 <div id="heroText">
@@ -512,6 +512,12 @@ html, body {
  *  浪漫生日祝福网站 — 核心脚本
  *  功能：粒子爱心 → 花雨相册 → 拍立得拖拽 → 全屏查看 → 留言板 → 时光卡片 → 音乐
  * ================================================================================= */
+
+// 立即标记：脚本开始执行
+(function() {
+  var dp = document.getElementById('debugPanel');
+  if (dp) dp.textContent = '✅ JS开始执行...';
+})();
 
 // ==================== 全局配置 ====================
 const CONFIG = {
@@ -593,15 +599,26 @@ const notesContainer = document.getElementById('notesContainer');
 
 // ==================== Canvas 尺寸适配 ====================
 function resizeCanvas() {
-  canvas.width = window.innerWidth * devicePixelRatio;
-  canvas.height = window.innerHeight * devicePixelRatio;
-  canvas.style.width = window.innerWidth + 'px';
-  canvas.style.height = window.innerHeight + 'px';
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(window.innerWidth, 320);
+  const h = Math.max(window.innerHeight, 480);
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  if (ctx) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+  }
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// Canvas 上下文安全检查
+if (!ctx) {
+  document.getElementById('debugPanel').textContent = '错误：Canvas 2D 上下文获取失败！';
+  console.error('Canvas 2D context unavailable');
+}
 
 // ==================== 粒子系统 ====================
 class Particle {
@@ -1734,6 +1751,12 @@ console.log('📸 合照：' + PHOTO_PATHS.together.length + ' 张 | 独照：' 
 console.log('🎵 音乐：Web Audio API 生成');
 console.log('💌 留言板：localStorage 持久化');
 console.log('💝 在一起的天数从 2026年1月20日 开始计算');
+
+// 标记脚本完整加载
+(function() {
+  var dp = document.getElementById('debugPanel');
+  if (dp) dp.textContent = '✅ JS完整加载，等待DOMContentLoaded...';
+})();
 </script>
 </body>
 </html>
