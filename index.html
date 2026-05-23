@@ -21,9 +21,9 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
 .photo-card:active{cursor:grabbing}
 .photo-card.dragging{z-index:100;filter:brightness(1.05)}
 .photo-card:hover,.photo-card.touched{z-index:99}
-.photo-card .polaroid{background:#fffdf7;padding:7px 7px 24px 7px;border-radius:3px;box-shadow:2px 3px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.08);width:140px}
+.photo-card .polaroid{background:#fffdf7;padding:8px 8px 28px 8px;border-radius:3px;box-shadow:2px 3px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.08);width:160px}
 .photo-card.dragging .polaroid,.photo-card:hover .polaroid,.photo-card.touched .polaroid{box-shadow:4px 8px 28px rgba(0,0,0,0.25),0 4px 12px rgba(0,0,0,0.12)}
-.photo-card .polaroid img{display:block;width:126px;height:126px;object-fit:cover;border-radius:1px;pointer-events:none;background:linear-gradient(110deg,#f0d8d8 30%,#f8e8e8 50%,#f0d8d8 70%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite;transition:opacity 0.35s ease}
+.photo-card .polaroid img{display:block;width:144px;height:144px;object-fit:cover;border-radius:1px;pointer-events:none;background:linear-gradient(110deg,#f0d8d8 30%,#f8e8e8 50%,#f0d8d8 70%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite;transition:opacity 0.35s ease}
 .photo-card .polaroid img.loaded{animation:none;background:#f0d8d8;opacity:1}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .photo-card .polaroid::after{content:'❤';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);font-size:12px;color:#e91e63;opacity:0.6}
@@ -101,8 +101,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
 #swipeOverlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:3;pointer-events:none;opacity:0;transition:opacity 0.15s ease}
 
 @media(max-width:600px){
-  .photo-card .polaroid{width:110px;padding:5px 5px 18px 5px}
-  .photo-card .polaroid img{width:100px;height:100px}
+  .photo-card .polaroid{width:130px;padding:6px 6px 22px 6px}
+  .photo-card .polaroid img{width:118px;height:118px}
   .photo-card .polaroid::after{font-size:10px;bottom:3px}
   #infoPanel{bottom:56px;left:10px;padding:8px 12px;font-size:11px}
   #musicBtn{bottom:14px;right:10px;width:42px;height:42px;font-size:20px}
@@ -193,7 +193,7 @@ const CONFIG = {
   startDate: new Date('2026-01-20'),
   heartDuration: 3800, burstDuration: 1300,
   particleCount: 2400, sparkleCount: 70,
-  photoFallInterval: 2000, maxFallingPhotos: 8,
+  photoFallInterval: 1700, maxFallingPhotos: 8,
   heartScale: 0.7, fallSpeedBase: 0.85, fallSpeedRange: 0.55,
 };
 const isMobile = window.innerWidth < 768;
@@ -248,6 +248,77 @@ for(let i=0;i<CONFIG.particleCount;i++)particles.push(new Particle());
 class Sparkle{constructor(){this.reset(true)}reset(init){this.x=Math.random()*window.innerWidth;this.y=init?Math.random()*window.innerHeight:-20;this.size=0.8+Math.random()*2.2;this.speedY=0.15+Math.random()*0.5;this.speedX=(Math.random()-0.5)*0.3;this.opacity=0.2+Math.random()*0.5;this.phase=Math.random()*Math.PI*2;this.flickerSpeed=1+Math.random()*2}update(){this.y-=this.speedY;this.x+=this.speedX+Math.sin(this.phase)*0.2;this.phase+=0.02;if(this.y<-20){this.y=window.innerHeight+20;this.x=Math.random()*window.innerWidth}if(this.x<-20)this.x=window.innerWidth+20;if(this.x>window.innerWidth+20)this.x=-20}draw(c,t){const f=0.5+0.5*Math.sin(t*this.flickerSpeed+this.phase);c.save();c.globalAlpha=this.opacity*f;const g=c.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size*2);g.addColorStop(0,'rgba(255,235,180,1)');g.addColorStop(0.4,'rgba(255,220,150,0.7)');g.addColorStop(1,'rgba(255,200,100,0)');c.fillStyle=g;c.beginPath();c.arc(this.x,this.y,this.size*2,0,Math.PI*2);c.fill();c.restore()}}
 const sparkles=[];
 for(let i=0;i<CONFIG.sparkleCount;i++)sparkles.push(new Sparkle());
+
+// ==================== 背景虚影照片 ====================
+const ghostImages = {}; // 缓存已加载的Image对象
+let ghosts = [];
+let ghostLastSpawn = 0;
+
+function loadGhostImages(page) {
+  const album = page === 1 ? '合照' : '独照';
+  const list = page === 1 ? PHOTO_PATHS.together : PHOTO_PATHS.solo;
+  const key = album;
+  if (ghostImages[key]) return;
+  ghostImages[key] = [];
+  for (const f of list) {
+    const img = new Image();
+    img.src = `./照片/${album}/${f}`;
+    ghostImages[key] = ghostImages[key] || [];
+    ghostImages[key].push(img);
+  }
+}
+
+class GhostPhoto {
+  constructor(img, w, h) {
+    this.img = img;
+    this.w = w; this.h = h;
+    this.x = w * 0.1 + Math.random() * w * 0.6;
+    this.y = h * 0.1 + Math.random() * h * 0.6;
+    this.life = 0;           // 0→1→2→3 (fadeIn→show→fadeOut→dead)
+    this.maxLife = 3;
+    this.startSize = 0.7 + Math.random() * 0.3;
+    this.endSize = this.startSize + 0.3 + Math.random() * 0.5;
+    this.rotation = (Math.random() - 0.5) * 15;
+  }
+  update(dt) {
+    this.life += dt * 0.15; // 缓慢推进生命周期
+    return this.life < this.maxLife;
+  }
+  alpha() {
+    if (this.life < 0.5) return this.life / 0.5 * 0.12;           // 淡入
+    if (this.life < this.maxLife - 0.8) return 0.12;               // 保持
+    return (this.maxLife - this.life) / 0.8 * 0.12;                // 淡出
+  }
+  scale() {
+    const progress = Math.min(this.life / this.maxLife, 1);
+    return this.startSize + (this.endSize - this.startSize) * progress;
+  }
+  draw(ctx) {
+    const a = this.alpha();
+    if (a < 0.01 || !this.img.complete) return;
+    const s = this.scale();
+    const dw = this.w * s, dh = this.h * s;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(this.x + dw/2, this.y + dh/2);
+    ctx.rotate(this.rotation * Math.PI / 180);
+    // 柔化边缘
+    ctx.shadowColor = 'rgba(255,200,200,0.3)';
+    ctx.shadowBlur = 30;
+    ctx.drawImage(this.img, -dw/2, -dh/2, dw, dh);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+}
+
+function spawnGhost() {
+  const key = state.currentPage === 1 ? '合照' : '独照';
+  const imgs = ghostImages[key];
+  if (!imgs || imgs.length === 0) return;
+  const img = imgs[Math.floor(Math.random() * imgs.length)];
+  if (!img.complete) return;
+  ghosts.push(new GhostPhoto(img, window.innerWidth, window.innerHeight));
+}
 
 // ==================== 蛋糕 ====================
 let cakeAlpha=0;
@@ -533,6 +604,23 @@ function animate(ts){
     else{lastSpawnTime=0}
   }
 
+  // ---- 背景虚影（幽灵照片），在萤火虫之前绘制 ----
+  if (state.currentPage >= 1 && state.currentPage <= 2) {
+    // 加载该页面照片
+    loadGhostImages(state.currentPage);
+    // 定时生成新虚影
+    if (globalTime - ghostLastSpawn > 3.5 + Math.random() * 2) {
+      spawnGhost();
+      ghostLastSpawn = globalTime;
+    }
+    // 更新+绘制
+    ghosts = ghosts.filter(g => g.update(0.016));
+    for (const g of ghosts) g.draw(ctx);
+  } else {
+    // 离开照片页时清空虚影
+    ghosts = [];
+  }
+
   for(const s of sparkles){s.update();s.draw(ctx,globalTime)}
 
   if(state.phase==='heart'){
@@ -554,8 +642,8 @@ function animate(ts){
   }catch(e){}
 
   if(photoFallStarted&&state.phase==='falling'&&state.currentPage>=1&&state.currentPage<=2){
-    if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*450);lastSpawnTime=rTs}
-    else if(rTs-lastSpawnTime>CONFIG.photoFallInterval){spawnPhotoCard();lastSpawnTime=rTs}
+    if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*380);lastSpawnTime=rTs}
+    else if(rTs-lastSpawnTime>CONFIG.photoFallInterval+Math.random()*300-150){spawnPhotoCard();lastSpawnTime=rTs}
   }
 
   let fc=0,cn=0;
