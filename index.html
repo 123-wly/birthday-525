@@ -1076,6 +1076,7 @@ let globalTime=0,lastSpawnTime=0,photoFallStarted=false,animStartTs=null;
 
 function animate(ts){
   requestAnimationFrame(animate);
+  try {
   if(animStartTs===null)animStartTs=ts;
   const rTs=ts-animStartTs;
   globalTime=rTs*0.001;
@@ -1130,12 +1131,14 @@ function animate(ts){
   }
 
   // ---- 蛋糕（首页hero文字出现后渐显，画在最上层） ----
-  if (state.currentPage === 0 && heroText.classList.contains('visible')) {
-    cakeAlpha += (1 - cakeAlpha) * 0.03;
-  } else if (state.currentPage !== 0) {
-    cakeAlpha += (0 - cakeAlpha) * 0.1;
-  }
-  if (cakeAlpha > 0.005) drawCake(ctx, globalTime, Math.min(cakeAlpha, 0.9));
+  try {
+    if (state.currentPage === 0 && heroText.classList.contains('visible')) {
+      cakeAlpha += (1 - cakeAlpha) * 0.03;
+    } else if (state.currentPage !== 0) {
+      cakeAlpha += (0 - cakeAlpha) * 0.1;
+    }
+    if (cakeAlpha > 0.005) drawCake(ctx, globalTime, Math.min(cakeAlpha, 0.9));
+  } catch(e) { /* 蛋糕绘制失败不影响主循环 */ }
 
   // 照片生成（仅第1-2页）
   if(photoFallStarted&&state.phase==='falling'&&state.currentPage>=1&&state.currentPage<=2){
@@ -1151,6 +1154,14 @@ function animate(ts){
 
   // 音乐
   if(state.musicPlaying&&audioCtx&&audioCtx.state==='running'&&!musicInterval){musicNoteIndex=0;pMS();}
+  } catch(e) {
+    // 动画循环出错时在页面顶部显示错误
+    const errEl = document.getElementById('daysCard');
+    if (errEl && !window._animErrorShown) {
+      window._animErrorShown = true;
+      errEl.textContent = '动画错误: ' + e.message;
+    }
+  }
 }
 
 // ==================== 初始化 ====================
