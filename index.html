@@ -238,7 +238,7 @@ html,body{
 
 <div id="heroText">
   <div class="title">生日快乐</div>
-  <div class="subtitle">致我最爱的宝贝</div>
+  <div class="subtitle">致我最爱的萌萌</div>
 </div>
 
 <div id="photoContainer"></div>
@@ -294,9 +294,9 @@ const CONFIG = {
   startDate: new Date('2026-01-20'),
   heartDuration: 3800,
   burstDuration: 1300,
-  particleCount: 3200,
-  sparkleCount: 80,
-  photoFallInterval: 1800,
+  particleCount: 2400,
+  sparkleCount: 70,
+  photoFallInterval: 2000,
   maxFallingPhotos: 8,
   heartScale: 0.7,
   fallSpeedBase: 0.85,     // 基础下落速度
@@ -304,8 +304,8 @@ const CONFIG = {
 };
 const isMobile = window.innerWidth < 768;
 if (isMobile) {
-  CONFIG.particleCount = 1800;
-  CONFIG.sparkleCount = 40;
+  CONFIG.particleCount = 1400;
+  CONFIG.sparkleCount = 35;
   CONFIG.maxFallingPhotos = 6;
 }
 
@@ -358,6 +358,19 @@ const notesContainer = document.getElementById('notesContainer');
 const pageDots = document.getElementById('pageDots').querySelectorAll('.dot');
 const infoPanel = document.getElementById('infoPanel');
 
+// 圆角矩形路径辅助
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+}
+
 // ==================== Canvas 尺寸 ====================
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
@@ -398,7 +411,8 @@ class Particle {
   }
   getHeartPos(scale, time) {
     const hx = 16 * Math.pow(Math.sin(this.t), 3);
-    const hy = 13 * Math.cos(this.t) - 5*Math.cos(2*this.t) - 2*Math.cos(3*this.t) - Math.cos(4*this.t);
+    // 降低高频项系数让爱心底部更圆润
+    const hy = 13*Math.cos(this.t) - 3.5*Math.cos(2*this.t) - 1.5*Math.cos(3*this.t) - 0.5*Math.cos(4*this.t);
     const breathe = 1 + Math.sin(time * 1.8) * 0.025;
     return {
       x: hx * this.heartRadius * scale * breathe + Math.cos(time*this.floatSpeed*0.7+this.floatOffset)*this.floatAmp*0.5,
@@ -456,8 +470,84 @@ class Particle {
     ctx.beginPath(); ctx.arc(0,0,s*0.25,0,Math.PI*2); ctx.fill(); ctx.restore();
   }
 }
-const particles = [];
-for (let i = 0; i < CONFIG.particleCount; i++) particles.push(new Particle());
+// ==================== 蛋糕绘制（首页hero文字下方） ====================
+let cakeAlpha = 0;
+function drawCake(ctx, time, alpha) {
+  if (alpha <= 0.01) return;
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2 + 100; // 在hero文字下方
+  const sc = Math.min(window.innerWidth, window.innerHeight) / 700;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // --- 蛋糕主体（双层） ---
+  const bw1 = 140 * sc, bh1 = 60 * sc;
+  const b1y = cy + 10 * sc;
+  const r1 = Math.min(8*sc, bh1/3);
+  ctx.fillStyle = '#fce4ec';
+  ctx.beginPath(); roundRectPath(ctx, cx-bw1/2, b1y, bw1, bh1, r1); ctx.fill();
+  ctx.strokeStyle = '#f8bbd0'; ctx.lineWidth = 2*sc;
+  ctx.beginPath(); roundRectPath(ctx, cx-bw1/2, b1y, bw1, bh1, r1); ctx.stroke();
+
+  const bw2 = 110 * sc, bh2 = 50 * sc;
+  const b2y = b1y - bh2 + 5*sc;
+  const r2 = Math.min(6*sc, bh2/3);
+  ctx.fillStyle = '#fff0f3';
+  ctx.beginPath(); roundRectPath(ctx, cx-bw2/2, b2y, bw2, bh2, r2); ctx.fill();
+  ctx.strokeStyle = '#f8bbd0';
+  ctx.beginPath(); roundRectPath(ctx, cx-bw2/2, b2y, bw2, bh2, r2); ctx.stroke();
+
+  // --- 奶油裱花 ---
+  ctx.fillStyle = '#fff';
+  const dripR = 7 * sc;
+  for (let dx = -bw2/2 + dripR; dx < bw2/2; dx += dripR * 2.2) {
+    ctx.beginPath();
+    ctx.arc(cx + dx, b2y, dripR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // --- 蜡烛 ---
+  const candleW = 8 * sc, candleH = 45 * sc;
+  const candleX = cx, candleY = b2y - candleH + 5*sc;
+  ctx.fillStyle = '#ffb6c1';
+  ctx.fillRect(candleX - candleW/2, candleY, candleW, candleH);
+  // 蜡烛条纹
+  ctx.fillStyle = '#ff91a4';
+  ctx.fillRect(candleX - candleW/4, candleY, candleW/2, candleH);
+
+  // --- 火苗（动态） ---
+  const flameBaseY = candleY;
+  const flicker = Math.sin(time * 18) * 0.3 + Math.sin(time * 23 + 1.5) * 0.25 + Math.sin(time * 31) * 0.15;
+  const flameH = (20 + flicker * 8) * sc;
+  const flameW = (9 + Math.abs(flicker) * 4) * sc;
+
+  // 火焰外层（橙黄光晕）
+  const glowGrad = ctx.createRadialGradient(candleX, flameBaseY - flameH*0.3, flameW*0.5,
+    candleX, flameBaseY - flameH*0.6, flameH*1.1);
+  glowGrad.addColorStop(0, 'rgba(255,200,50,0.7)');
+  glowGrad.addColorStop(0.5, 'rgba(255,150,20,0.4)');
+  glowGrad.addColorStop(1, 'rgba(255,100,0,0)');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(candleX, flameBaseY - flameH*0.3, flameH*1.1, 0, Math.PI*2);
+  ctx.fill();
+
+  // 火焰内层
+  const flameGrad = ctx.createLinearGradient(candleX, flameBaseY, candleX, flameBaseY - flameH);
+  flameGrad.addColorStop(0, '#ff6600');
+  flameGrad.addColorStop(0.3, '#ff9900');
+  flameGrad.addColorStop(0.6, '#ffcc00');
+  flameGrad.addColorStop(1, '#fff5cc');
+  ctx.fillStyle = flameGrad;
+  ctx.beginPath();
+  ctx.moveTo(candleX - flameW, flameBaseY);
+  ctx.quadraticCurveTo(candleX - flameW*0.3, flameBaseY - flameH*0.6, candleX + flicker*3*sc, flameBaseY - flameH);
+  ctx.quadraticCurveTo(candleX + flameW*0.3, flameBaseY - flameH*0.6, candleX + flameW, flameBaseY);
+  ctx.fill();
+
+  ctx.restore();
+}
 
 // ==================== 萤火虫 ====================
 class Sparkle {
@@ -661,6 +751,16 @@ function clearAllPhotoCards() {
   activePhotoIndices.length = 0;
 }
 
+// 预加载页面照片（避免白色闪烁）
+function preloadPhotosForPage(page) {
+  const list = getList(page);
+  const album = getAlbum(page);
+  for (const fname of list) {
+    const img = new Image();
+    img.src = `./照片/${album}/${fname}`;
+  }
+}
+
 // ==================== 页面管理（4页） ====================
 // 第0页=爱心，第1页=合照，第2页=独照，第3页=留言板
 function updatePageUI() {
@@ -683,16 +783,39 @@ function updatePageUI() {
 
 function switchToPage(newPage) {
   if (state.currentPage === newPage || newPage < 0 || newPage > 3) return;
+
+  // 过渡动画：短暂闪烁
+  const overlay = document.getElementById('swipeOverlay');
+  let transAlpha = 0;
+  const transDuration = 250; // ms
+  const transStart = performance.now();
+  function transAnim(ts) {
+    const elapsed = ts - transStart;
+    const progress = Math.min(elapsed / transDuration, 1);
+    // 先增后减的alpha曲线
+    transAlpha = progress < 0.5 ? progress * 2 * 0.3 : (1 - progress) * 2 * 0.3;
+    overlay.style.opacity = transAlpha;
+    overlay.style.background = 'rgba(255,255,255,' + transAlpha + ')';
+    if (progress < 1) {
+      requestAnimationFrame(transAnim);
+    } else {
+      overlay.style.opacity = '0';
+      overlay.style.background = '';
+    }
+  }
+  requestAnimationFrame(transAnim);
+
   state.currentPage = newPage;
   clearAllPhotoCards();
   updatePageUI();
 
   // 第1-2页且动画已进入飘落阶段时触发照片生成
   if (newPage >= 1 && newPage <= 2 && state.phase === 'falling') {
+    // 预加载当前页照片
+    preloadPhotosForPage(newPage);
     photoFallStarted = true;
     lastSpawnTime = 0;
   } else if (newPage === 0) {
-    // 回到首页时不生成照片
     photoFallStarted = false;
   }
 }
@@ -1006,9 +1129,17 @@ function animate(ts){
     for(const p of particles){p.updatePetal(gv,wind);p.drawPetal(ctx,p.petalX,p.petalY,fi*0.85);}
   }
 
+  // ---- 蛋糕（首页hero文字出现后渐显，画在最上层） ----
+  if (state.currentPage === 0 && heroText.classList.contains('visible')) {
+    cakeAlpha += (1 - cakeAlpha) * 0.03;
+  } else if (state.currentPage !== 0) {
+    cakeAlpha += (0 - cakeAlpha) * 0.1;
+  }
+  if (cakeAlpha > 0.005) drawCake(ctx, globalTime, Math.min(cakeAlpha, 0.9));
+
   // 照片生成（仅第1-2页）
   if(photoFallStarted&&state.phase==='falling'&&state.currentPage>=1&&state.currentPage<=2){
-    if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*250);lastSpawnTime=rTs;}
+    if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*450);lastSpawnTime=rTs;}
     else if(rTs-lastSpawnTime>CONFIG.photoFallInterval){spawnPhotoCard();lastSpawnTime=rTs;}
   }
 
@@ -1027,6 +1158,9 @@ function init(){
   updateDays();renderMessages();
   state.musicPlaying=true;musicBtn.classList.add('playing');musicBtn.classList.remove('paused');musicBtn.textContent='🎵';
   updatePageUI();
+  // 预加载首页和合照页照片（首页爆开后会直接到合照页）
+  preloadPhotosForPage(1);
+  preloadPhotosForPage(2);
   requestAnimationFrame(animate);
 }
 window.addEventListener('DOMContentLoaded',init);
