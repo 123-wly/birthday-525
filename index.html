@@ -268,15 +268,19 @@ function initGhostImages() {
 }
 
 class GhostPhoto {
-  constructor(img, w, h) {
+  constructor(img, sw, sh) {
     this.img = img;
-    this.w = w; this.h = h;
-    this.x = w * 0.05 + Math.random() * w * 0.5;
-    this.y = h * 0.08 + Math.random() * h * 0.5;
+    // 基于图片原始比例计算基准尺寸
+    const ir = img.naturalWidth / img.naturalHeight || 0.75;
+    const base = Math.min(sw, sh) * (0.25 + Math.random() * 0.25);
+    this.baseW = ir >= 1 ? base : base * ir;
+    this.baseH = ir >= 1 ? base / ir : base;
+    this.x = sw * 0.05 + Math.random() * sw * 0.5;
+    this.y = sh * 0.05 + Math.random() * sh * 0.45;
     this.life = 0;
     this.maxLife = 3.5;
-    this.startSize = 0.5 + Math.random() * 0.3;
-    this.endSize = this.startSize + 0.4 + Math.random() * 0.4;
+    this.startScale = 0.6 + Math.random() * 0.3;
+    this.endScale = this.startScale + 0.3 + Math.random() * 0.4;
     this.rotation = (Math.random() - 0.5) * 20;
   }
   update(dt) {
@@ -288,14 +292,14 @@ class GhostPhoto {
     if (this.life < this.maxLife - 1.0) return 0.13;
     return (this.maxLife - this.life) / 1.0 * 0.13;
   }
-  scale() {
-    return this.startSize + (this.endSize - this.startSize) * Math.min(this.life / this.maxLife, 1);
+  currentScale() {
+    return this.startScale + (this.endScale - this.startScale) * Math.min(this.life / this.maxLife, 1);
   }
   draw(ctx) {
     const a = this.alpha();
     if (a < 0.005 || !this.img.complete || this.img.naturalWidth === 0) return;
-    const s = this.scale();
-    const dw = this.w * s, dh = this.h * s;
+    const s = this.currentScale();
+    const dw = this.baseW * s, dh = this.baseH * s;
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(this.x + dw/2, this.y + dh/2);
