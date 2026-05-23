@@ -1241,64 +1241,181 @@ function animateNumber(from, to, duration) {
 updateDaysCounter();
 setInterval(updateDaysCounter, 60000); // 每分钟更新一次
 
-// ==================== 背景音乐（Web Audio API） ====================
+// ==================== 背景音乐（Web Audio API 生日歌） ====================
 let audioCtx = null;
 let musicInterval = null;
 let musicNoteIndex = 0;
+let musicPhase = 'intro'; // 'intro' | 'song' | 'loop'
 
-// 一段轻柔的浪漫旋律（C大调五声）
-const melody = [
-  { note: 'C4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
-  { note: 'G4', dur: 0.75 }, { note: 'A4', dur: 0.25 },
-  { note: 'G4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
-  { note: 'C5', dur: 1 }, { note: null, dur: 0.25 },
-  { note: 'D4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
-  { note: 'A4', dur: 0.5 }, { note: 'C5', dur: 0.5 },
-  { note: 'A4', dur: 0.75 }, { note: 'G4', dur: 0.25 },
-  { note: 'E4', dur: 1.5 },
-  { note: null, dur: 0.5 },
-  { note: 'E4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
-  { note: 'C5', dur: 0.5 }, { note: 'D5', dur: 0.5 },
-  { note: 'E5', dur: 1 }, { note: 'D5', dur: 0.5 },
-  { note: 'C5', dur: 0.5 }, { note: 'A4', dur: 0.5 },
-  { note: 'G4', dur: 1.5 },
-  { note: null, dur: 0.5 },
-  { note: 'C4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
-  { note: 'G4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
-  { note: 'D4', dur: 0.75 }, { note: 'E4', dur: 0.25 },
-  { note: 'C4', dur: 2 },
-];
-
+// 音符频率映射表 (Hz)
 const noteFrequencies = {
-  'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'G4': 392.00,
-  'A4': 440.00, 'C5': 523.25, 'D5': 587.33, 'E5': 659.25,
+  'C2': 65.41, 'D2': 73.42, 'E2': 82.41, 'F2': 87.31, 'G2': 98.00, 'A2': 110.00, 'B2': 123.47,
+  'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
+  'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+  'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99,
 };
 
-function playNote(freq, duration, startTime) {
+// 前奏：柔和的钢琴式分解和弦 (C大调 I-V-vi-IV 进行)
+const introMelody = [
+  { note: 'C4', dur: 1.2, chord: ['E4','G4','C5'] },
+  { note: null, dur: 0.3 },
+  { note: 'G3', dur: 1.0, chord: ['D4','G4','B4'] },
+  { note: null, dur: 0.3 },
+  { note: 'A3', dur: 1.0, chord: ['C4','E4','A4'] },
+  { note: null, dur: 0.3 },
+  { note: 'F3', dur: 1.2, chord: ['C4','F4','A4'] },
+  { note: null, dur: 0.5 },
+  { note: 'C4', dur: 0.6, chord: ['E4','G4'] },
+  { note: 'D4', dur: 0.3, chord: ['F4','A4'] },
+  { note: 'E4', dur: 0.3, chord: ['G4','C5'] },
+  { note: 'F4', dur: 0.3, chord: ['A4','C5'] },
+  { note: 'G4', dur: 0.6 },
+  { note: null, dur: 1.0 },
+];
+
+// 生日歌主旋律（C大调）
+const songMelody = [
+  // "祝你生日快乐" 第一句
+  { note: 'G4', dur: 0.22 }, { note: 'G4', dur: 0.22 },
+  { note: 'A4', dur: 0.45 }, { note: 'G4', dur: 0.45 },
+  { note: 'C5', dur: 0.45 }, { note: 'B4', dur: 0.9 },
+  { note: null, dur: 0.3 },
+  // "祝你生日快乐" 第二句
+  { note: 'G4', dur: 0.22 }, { note: 'G4', dur: 0.22 },
+  { note: 'A4', dur: 0.45 }, { note: 'G4', dur: 0.45 },
+  { note: 'D5', dur: 0.45 }, { note: 'C5', dur: 0.9 },
+  { note: null, dur: 0.3 },
+  // "祝你生日快乐" 第三句（升高）
+  { note: 'G4', dur: 0.22 }, { note: 'G4', dur: 0.22 },
+  { note: 'G5', dur: 0.45 }, { note: 'E5', dur: 0.45 },
+  { note: 'C5', dur: 0.45 }, { note: 'B4', dur: 0.35 }, { note: 'A4', dur: 0.25 },
+  { note: null, dur: 0.2 },
+  // "祝你生日快乐" 结尾
+  { note: 'F5', dur: 0.22 }, { note: 'F5', dur: 0.22 },
+  { note: 'E5', dur: 0.45 }, { note: 'C5', dur: 0.45 },
+  { note: 'D5', dur: 0.9 }, { note: 'C5', dur: 1.8 },
+  { note: null, dur: 2.5 },
+];
+
+// 和弦伴奏映射
+const chordMap = {
+  'C': ['C3','E3','G3','C4'], 'G': ['G2','B2','D3','G3'],
+  'F': ['F2','A2','C3','F3'], 'Am': ['A2','C3','E3','A3'],
+  'Dm': ['D3','F3','A3','D4'],
+};
+
+function getChordAt(index) {
+  // 根据旋律位置返回和弦类型
+  const bar = Math.floor(index / 8);
+  const progression = ['C','G','Am','F','C','G','C','C','F','F','C','Am','Dm','G','C','C'];
+  return progression[bar % progression.length] || 'C';
+}
+
+function playNoteWithHarmony(freq, duration, startTime, chordType) {
   if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0, startTime);
-  gain.gain.linearRampToValueAtTime(0.18, startTime + 0.05);
-  gain.gain.linearRampToValueAtTime(0.12, startTime + duration * 0.6);
-  gain.gain.linearRampToValueAtTime(0, startTime + duration);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start(startTime);
-  osc.stop(startTime + duration + 0.1);
+  // 主旋律 - 温暖的三角波
+  const oscMelody = audioCtx.createOscillator();
+  const gainMelody = audioCtx.createGain();
+  oscMelody.type = 'triangle';
+  oscMelody.frequency.value = freq;
+  gainMelody.gain.setValueAtTime(0, startTime);
+  gainMelody.gain.linearRampToValueAtTime(0.16, startTime + 0.04);
+  gainMelody.gain.linearRampToValueAtTime(0.1, startTime + duration * 0.5);
+  gainMelody.gain.linearRampToValueAtTime(0, startTime + duration);
+  oscMelody.connect(gainMelody);
+  gainMelody.connect(audioCtx.destination);
+  oscMelody.start(startTime);
+  oscMelody.stop(startTime + duration + 0.1);
+
+  // 和弦伴奏音（轻柔的分解和弦感）
+  if (chordType && chordMap[chordType]) {
+    const notes = chordMap[chordType];
+    for (let i = 0; i < notes.length; i++) {
+      const chordFreq = noteFrequencies[notes[i]];
+      if (!chordFreq) continue;
+      const oscChord = audioCtx.createOscillator();
+      const gainChord = audioCtx.createGain();
+      oscChord.type = 'sine';
+      oscChord.frequency.value = chordFreq;
+      const chordVol = 0.03;
+      gainChord.gain.setValueAtTime(0, startTime);
+      gainChord.gain.linearRampToValueAtTime(chordVol, startTime + 0.03);
+      gainChord.gain.linearRampToValueAtTime(chordVol * 0.6, startTime + duration * 0.6);
+      gainChord.gain.linearRampToValueAtTime(0, startTime + duration);
+      oscChord.connect(gainChord);
+      gainChord.connect(audioCtx.destination);
+      oscChord.start(startTime);
+      oscChord.stop(startTime + duration + 0.1);
+    }
+  }
+
+  // 高音泛音铃铛效果
+  if (duration > 0.3) {
+    const oscBell = audioCtx.createOscillator();
+    const gainBell = audioCtx.createGain();
+    oscBell.type = 'sine';
+    oscBell.frequency.value = freq * 3;
+    gainBell.gain.setValueAtTime(0, startTime);
+    gainBell.gain.linearRampToValueAtTime(0.02, startTime + 0.02);
+    gainBell.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.5);
+    oscBell.connect(gainBell);
+    gainBell.connect(audioCtx.destination);
+    oscBell.start(startTime);
+    oscBell.stop(startTime + duration * 0.5);
+  }
 }
 
 function playMelodyStep() {
   if (!state.musicPlaying || !audioCtx) return;
-  const noteDef = melody[musicNoteIndex % melody.length];
-  const now = audioCtx.currentTime;
-  if (noteDef.note && noteFrequencies[noteDef.note]) {
-    playNote(noteFrequencies[noteDef.note], noteDef.dur, now);
+
+  // 选择当前段落
+  let currentMelody;
+  if (musicPhase === 'intro') {
+    currentMelody = introMelody;
+  } else {
+    currentMelody = songMelody;
   }
+
+  const melodyIdx = musicNoteIndex % currentMelody.length;
+  const noteDef = currentMelody[melodyIdx];
+  const now = audioCtx.currentTime;
+
+  if (noteDef.note && noteFrequencies[noteDef.note]) {
+    const chordType = musicPhase === 'song' ? getChordAt(melodyIdx) : null;
+    playNoteWithHarmony(noteFrequencies[noteDef.note], noteDef.dur, now, chordType);
+    // 同时演奏和弦音（前奏用）
+    if (noteDef.chord && musicPhase === 'intro') {
+      for (const cn of noteDef.chord) {
+        if (noteFrequencies[cn]) {
+          const oscC = audioCtx.createOscillator();
+          const gainC = audioCtx.createGain();
+          oscC.type = 'sine';
+          oscC.frequency.value = noteFrequencies[cn];
+          gainC.gain.setValueAtTime(0, now);
+          gainC.gain.linearRampToValueAtTime(0.05, now + 0.04);
+          gainC.gain.linearRampToValueAtTime(0.02, now + noteDef.dur * 0.7);
+          gainC.gain.linearRampToValueAtTime(0, now + noteDef.dur);
+          oscC.connect(gainC);
+          gainC.connect(audioCtx.destination);
+          oscC.start(now);
+          oscC.stop(now + noteDef.dur + 0.1);
+        }
+      }
+    }
+  }
+
   musicNoteIndex++;
-  const nextDur = (noteDef.dur * 1000) + 40;
+  // 检查是否切换段落
+  if (musicPhase === 'intro' && musicNoteIndex >= introMelody.length) {
+    musicPhase = 'song';
+    musicNoteIndex = 0;
+  } else if (musicPhase === 'song' && musicNoteIndex >= songMelody.length) {
+    // 歌曲结束后循环（留一段间奏空白）
+    musicPhase = 'song';
+    musicNoteIndex = 0;
+  }
+
+  const nextDur = (noteDef.dur * 1000) + 50;
   musicInterval = setTimeout(playMelodyStep, nextDur);
 }
 
@@ -1318,6 +1435,7 @@ function startMusic() {
   musicBtn.classList.remove('paused');
   musicBtn.textContent = '🎵';
   musicNoteIndex = 0;
+  musicPhase = 'intro'; // 从头开始：前奏 → 生日歌
   playMelodyStep();
 }
 
@@ -1365,13 +1483,16 @@ let heartCenterY = window.innerHeight / 2;
 let globalTime = 0;
 let lastSpawnTime = 0;
 let photoFallStarted = false;
+let animationStartTs = null; // 首帧时间戳，用于相对计时
 
 function animate(timestamp) {
   requestAnimationFrame(animate);
 
-  globalTime = timestamp * 0.001; // 秒为单位
-  const dt = Math.min((timestamp - (animate._lastTs || timestamp)) * 0.001, 0.1);
-  animate._lastTs = timestamp;
+  // 记录首帧时间戳，所有阶段计时均基于相对时间
+  if (animationStartTs === null) animationStartTs = timestamp;
+  const relativeTs = timestamp - animationStartTs;
+
+  globalTime = relativeTs * 0.001; // 秒为单位
 
   heartCenterX = window.innerWidth / 2;
   heartCenterY = window.innerHeight * 0.45;
@@ -1382,12 +1503,12 @@ function animate(timestamp) {
 
   ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-  // ---- 阶段管理 ----
+  // ---- 阶段管理（使用相对时间） ----
   if (state.phase === 'heart') {
-    state.heartTime = timestamp;
-    if (timestamp > CONFIG.heartDuration) {
+    state.heartTime = relativeTs;
+    if (relativeTs > CONFIG.heartDuration) {
       state.phase = 'bursting';
-      state.burstStart = timestamp;
+      state.burstStart = relativeTs;
       // 初始化所有粒子的花瓣状态（带向外爆发速度）
       const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
       for (const p of particles) {
@@ -1404,7 +1525,7 @@ function animate(timestamp) {
 
   // 爆发过渡到飘落
   if (state.phase === 'bursting') {
-    const burstElapsed = timestamp - state.burstStart;
+    const burstElapsed = relativeTs - state.burstStart;
     if (burstElapsed > CONFIG.burstDuration) {
       state.phase = 'falling';
       photoFallStarted = true;
@@ -1425,7 +1546,7 @@ function animate(timestamp) {
 
   // ---- 爱心阶段：绘制心脏粒子 ----
   if (state.phase === 'heart') {
-    const elapsed = timestamp * 0.001;
+    const elapsed = relativeTs * 0.001;
     const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
     // 入场渐显
     const fadeIn = Math.min(elapsed / 0.8, 1);
@@ -1453,7 +1574,7 @@ function animate(timestamp) {
 
   // ---- 爆发/飘落阶段：绘制花瓣 ----
   if (state.phase === 'bursting' || state.phase === 'falling') {
-    const burstElapsed = (timestamp - (state.burstStart || timestamp)) * 0.001;
+    const burstElapsed = (relativeTs - (state.burstStart || 0)) * 0.001;
     const fadeIn = Math.min(burstElapsed / 0.4, 1);
     // 爆发阶段：降低重力让粒子飞得更远
     const gravity = state.phase === 'bursting' ? 0.008 : 0.03;
@@ -1471,10 +1592,10 @@ function animate(timestamp) {
       for (let i = 0; i < 5; i++) {
         setTimeout(() => spawnPhotoCard(), i * 200);
       }
-      lastSpawnTime = timestamp;
-    } else if (timestamp - lastSpawnTime > CONFIG.photoFallInterval) {
+      lastSpawnTime = relativeTs;
+    } else if (relativeTs - lastSpawnTime > CONFIG.photoFallInterval) {
       spawnPhotoCard();
-      lastSpawnTime = timestamp;
+      lastSpawnTime = relativeTs;
     }
   }
 
