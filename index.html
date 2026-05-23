@@ -6,228 +6,109 @@
 <title>生日快乐</title>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{
-  width:100%;height:100%;overflow:hidden;
-  font-family:'PingFang SC','Microsoft YaHei',sans-serif;
-  background:linear-gradient(170deg,#fef0f5 0%,#fce4ec 25%,#fff3e0 60%,#fce4ec 100%);
-  background-attachment:fixed;
-  -webkit-tap-highlight-color:transparent;
-  -webkit-user-select:none;user-select:none;
-  touch-action:none; /* JS 接管全部触摸 */
-}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:linear-gradient(170deg,#fef0f5 0%,#fce4ec 25%,#fff3e0 60%,#fce4ec 100%);background-attachment:fixed;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;touch-action:none}
 
-/* ============ Canvas ============ */
-#particleCanvas{
-  position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;
-  transition:opacity 0.5s ease;
-}
+/* Canvas */
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;transition:opacity 0.5s ease}
 #particleCanvas.hidden{opacity:0}
 
-/* ============ 照片容器 ============ */
-#photoContainer{
-  position:fixed;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;
-  transition:opacity 0.4s ease;
-}
+/* 照片容器 */
+#photoContainer{position:fixed;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;transition:opacity 0.4s ease}
 #photoContainer.hidden{opacity:0}
 
-/* ============ 拍立得相纸 ============ */
-.photo-card{
-  position:absolute;pointer-events:auto;cursor:grab;
-  will-change:transform;z-index:1;touch-action:none;
-}
+/* 拍立得 */
+.photo-card{position:absolute;pointer-events:auto;cursor:grab;will-change:transform;z-index:1;touch-action:none}
 .photo-card:active{cursor:grabbing}
 .photo-card.dragging{z-index:100;filter:brightness(1.05)}
 .photo-card:hover,.photo-card.touched{z-index:99}
-.photo-card .polaroid{
-  background:#fffdf7;padding:7px 7px 24px 7px;border-radius:3px;
-  box-shadow:2px 3px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.08);
-  width:140px;
-}
-.photo-card.dragging .polaroid,
-.photo-card:hover .polaroid,
-.photo-card.touched .polaroid{
-  box-shadow:4px 8px 28px rgba(0,0,0,0.25),0 4px 12px rgba(0,0,0,0.12);
-}
-.photo-card .polaroid img{
-  display:block;width:126px;height:126px;object-fit:cover;border-radius:1px;pointer-events:none;
-  background:#f0e0e0; /* 加载前的占位色 */
-  transition:opacity 0.3s ease;
-}
+.photo-card .polaroid{background:#fffdf7;padding:7px 7px 24px 7px;border-radius:3px;box-shadow:2px 3px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.08);width:140px}
+.photo-card.dragging .polaroid,.photo-card:hover .polaroid,.photo-card.touched .polaroid{box-shadow:4px 8px 28px rgba(0,0,0,0.25),0 4px 12px rgba(0,0,0,0.12)}
+.photo-card .polaroid img{display:block;width:126px;height:126px;object-fit:cover;border-radius:1px;pointer-events:none;background:#f0d8d8;transition:opacity 0.25s ease}
 .photo-card .polaroid img.loaded{opacity:1}
-.photo-card .polaroid::after{
-  content:'❤';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
-  font-size:12px;color:#e91e63;opacity:0.6;
-}
+.photo-card .polaroid::after{content:'❤';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);font-size:12px;color:#e91e63;opacity:0.6}
 
-/* ============ 页面指示点 ============ */
-#pageDots{
-  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
-  z-index:30;display:flex;flex-direction:column;gap:10px;
-  transition:opacity 0.5s ease;
-}
-#pageDots .dot{
-  width:7px;height:7px;border-radius:50%;
-  background:rgba(233,30,99,0.35);transition:all 0.4s ease;
-}
+/* 页面指示点 */
+#pageDots{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:30;display:flex;flex-direction:column;gap:10px;transition:opacity 0.5s ease}
+#pageDots .dot{width:7px;height:7px;border-radius:50%;background:rgba(233,30,99,0.35);transition:all 0.4s ease}
 #pageDots .dot.active{background:#e91e63;transform:scale(1.6);box-shadow:0 0 10px rgba(233,30,99,0.5)}
 
-/* ============ 开场标题 ============ */
-#heroText{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  z-index:10;pointer-events:none;text-align:center;opacity:0;transition:opacity 0.8s ease;
-}
+/* 开场标题 */
+#heroText{position:fixed;top:42%;left:50%;transform:translate(-50%,-50%);z-index:10;pointer-events:none;text-align:center;opacity:0;transition:opacity 0.8s ease}
 #heroText.visible{opacity:1}
-#heroText .title{
-  font-size:clamp(2rem,6vw,4rem);font-weight:700;
-  background:linear-gradient(135deg,#e91e63,#f06292,#ff8a65);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  letter-spacing:0.08em;
-}
-#heroText .subtitle{
-  font-size:clamp(1rem,3vw,1.6rem);color:#d81b60;margin-top:0.5em;opacity:0.85;
-}
+#heroText .title{font-size:clamp(2rem,6vw,4rem);font-weight:700;background:linear-gradient(135deg,#e91e63,#f06292,#ff8a65);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.08em}
+#heroText .subtitle{font-size:clamp(1rem,3vw,1.6rem);color:#d81b60;margin-top:0.5em;opacity:0.85}
 
-/* ============ 信息面板 ============ */
-#infoPanel{
-  position:fixed;bottom:70px;left:16px;z-index:20;
-  background:rgba(255,255,255,0.85);backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  border:2px solid #f8bbd0;border-radius:18px;
-  padding:10px 16px;font-size:13px;color:#c2185b;
-  box-shadow:0 4px 16px rgba(233,30,99,0.15);pointer-events:none;line-height:1.6;
-  transition:opacity 0.4s ease;
-}
+/* 页面文字叠层 */
+#pageOverlay{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);z-index:12;pointer-events:none;text-align:center;opacity:0;transition:opacity 0.5s ease}
+#pageOverlay .msg{font-size:clamp(1.3rem,4vw,2rem);font-weight:700;color:#e91e63;letter-spacing:0.06em}
 
-/* ============ 音乐按钮 ============ */
-#musicBtn{
-  position:fixed;bottom:20px;right:16px;z-index:30;
-  width:48px;height:48px;border-radius:50%;
-  background:rgba(255,255,255,0.88);backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  border:2px solid #f8bbd0;cursor:pointer;font-size:22px;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 16px rgba(233,30,99,0.2);transition:all 0.3s ease;
-}
+/* 信息面板 */
+#infoPanel{position:fixed;bottom:64px;left:16px;z-index:20;background:rgba(255,255,255,0.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:2px solid #f8bbd0;border-radius:18px;padding:10px 16px;font-size:13px;color:#c2185b;box-shadow:0 4px 16px rgba(233,30,99,0.15);pointer-events:none;line-height:1.6;transition:opacity 0.4s ease}
+
+/* 音乐按钮 */
+#musicBtn{position:fixed;bottom:20px;right:16px;z-index:30;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:2px solid #f8bbd0;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(233,30,99,0.2);transition:all 0.3s ease}
 #musicBtn.playing{animation:musicSpin 3s linear infinite;border-color:#e91e63;color:#e91e63}
 #musicBtn.paused{animation:none;color:#999}
 @keyframes musicSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-/* ============ 全屏查看器 ============ */
-#fullscreenViewer{
-  position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;
-  background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity 0.3s ease;
-}
+/* 全屏查看器 */
+#fullscreenViewer{position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s ease}
 #fullscreenViewer.active{opacity:1;pointer-events:auto}
 #fullscreenViewer img{max-width:92vw;max-height:85vh;object-fit:contain;border-radius:4px}
-#fullscreenViewer .closeBtn{
-  position:absolute;top:16px;right:16px;z-index:10;width:44px;height:44px;
-  border-radius:50%;background:rgba(255,255,255,0.15);border:none;
-  color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-}
-#fullscreenViewer .navBtn{
-  position:absolute;top:50%;transform:translateY(-50%);z-index:10;
-  width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.12);
-  border:none;color:#fff;font-size:22px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-}
+#fullscreenViewer .closeBtn{position:absolute;top:16px;right:16px;z-index:10;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#fullscreenViewer .navBtn{position:absolute;top:50%;transform:translateY(-50%);z-index:10;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #fullscreenViewer .navBtn.prev{left:8px}
 #fullscreenViewer .navBtn.next{right:8px}
-#fullscreenViewer .counter{
-  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
-  color:rgba(255,255,255,0.7);font-size:14px;
-}
+#fullscreenViewer .counter{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:14px}
 
-/* ============ 留言板页面（第3页） ============ */
-#messagePage{
-  position:fixed;top:0;left:0;width:100%;height:100%;z-index:8;
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity 0.5s ease,transform 0.5s ease;
-  transform:translateY(40px);
-  background:rgba(255,240,245,0.45);
-}
+/* 留言板页面 */
+#messagePage{position:fixed;top:0;left:0;width:100%;height:100%;z-index:8;display:flex;align-items:center;justify-content:center;flex-direction:column;opacity:0;pointer-events:none;transition:opacity 0.5s ease,transform 0.5s ease;transform:translateY(40px);background:rgba(255,240,245,0.45)}
 #messagePage.active{opacity:1;pointer-events:auto;transform:translateY(0)}
-#messagePage .boardWrapper{
-  width:min(460px,94vw);max-height:75vh;
-  background:#f5e6d3;
-  background-image:
-    radial-gradient(circle,#d4b896 1px,transparent 1px),
-    radial-gradient(circle,#c4a882 0.5px,transparent 0.5px),
-    radial-gradient(circle,#e8d5c0 1.5px,transparent 1.5px);
-  background-size:12px 12px,20px 20px,18px 18px;
-  background-position:0 0,5px 5px,9px 9px;
-  border-radius:16px;border:2px solid #d4b896;
-  box-shadow:inset 0 0 30px rgba(139,90,43,0.08),0 8px 32px rgba(0,0,0,0.12);
-  padding:18px;display:flex;flex-direction:column;
-}
-#messagePage .boardTitle{
-  text-align:center;font-size:16px;color:#8d6e63;font-weight:700;
-  margin-bottom:12px;letter-spacing:0.04em;
-}
-#messagePage .inputRow{
-  display:flex;gap:8px;margin-bottom:12px;flex-shrink:0;
-}
-#messagePage .inputRow input{
-  flex:1 1 70px;min-width:60px;padding:10px 14px;
-  border:1.5px solid #d4b896;border-radius:14px;font-size:14px;
-  font-family:inherit;background:rgba(255,255,255,0.9);outline:none;color:#5d4037;
-}
+#messagePage .loveNote{text-align:center;color:#c2185b;font-size:14px;line-height:1.8;max-width:min(440px,90vw);padding:0 16px 12px;font-weight:500;letter-spacing:0.03em}
+#messagePage .boardWrapper{width:min(460px,94vw);max-height:62vh;background:#f5e6d3;background-image:radial-gradient(circle,#d4b896 1px,transparent 1px),radial-gradient(circle,#c4a882 0.5px,transparent 0.5px),radial-gradient(circle,#e8d5c0 1.5px,transparent 1.5px);background-size:12px 12px,20px 20px,18px 18px;background-position:0 0,5px 5px,9px 9px;border-radius:16px;border:2px solid #d4b896;box-shadow:inset 0 0 30px rgba(139,90,43,0.08),0 8px 32px rgba(0,0,0,0.12);padding:18px;display:flex;flex-direction:column}
+#messagePage .boardTitle{text-align:center;font-size:16px;color:#8d6e63;font-weight:700;margin-bottom:12px;letter-spacing:0.04em}
+#messagePage .inputRow{display:flex;gap:8px;margin-bottom:12px;flex-shrink:0}
+#messagePage .inputRow input{flex:1 1 70px;min-width:60px;padding:10px 14px;border:1.5px solid #d4b896;border-radius:14px;font-size:14px;font-family:inherit;background:rgba(255,255,255,0.9);outline:none;color:#5d4037}
 #messagePage .inputRow input:focus{border-color:#e91e63}
-#messagePage .inputRow button{
-  padding:10px 18px;background:linear-gradient(135deg,#f06292,#e91e63);
-  border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit;white-space:nowrap;
-  transition:transform 0.15s ease;
-}
+#messagePage .inputRow button{padding:10px 18px;background:linear-gradient(135deg,#f06292,#e91e63);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:transform 0.15s ease}
 #messagePage .inputRow button:active{transform:scale(0.94)}
-#messagePage .notes{
-  display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
-  overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;padding:4px 0;
-}
-.sticky-note{
-  padding:12px 14px;border-radius:2px 14px 2px 14px;
-  font-size:12px;max-width:150px;box-shadow:2px 3px 8px rgba(0,0,0,0.12);
-  word-break:break-word;line-height:1.5;position:relative;
-}
+#messagePage .notes{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;padding:4px 0}
+.sticky-note{padding:12px 14px;border-radius:2px 14px 2px 14px;font-size:12px;max-width:150px;box-shadow:2px 3px 8px rgba(0,0,0,0.12);word-break:break-word;line-height:1.5;position:relative}
 .sticky-note::before{content:'📌';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:14px}
 .sticky-note .noteAuthor{font-weight:700;font-size:13px;margin-bottom:2px}
 .sticky-note .noteTime{font-size:10px;opacity:0.55;margin-top:6px;text-align:right}
 
-/* ============ 时光卡片 ============ */
-#daysCard{
-  position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:25;
-  background:rgba(255,255,255,0.88);backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  border:2px solid #f8bbd0;border-radius:20px;
-  padding:10px 20px;text-align:center;
-  box-shadow:0 6px 24px rgba(233,30,99,0.16);
-  animation:cardFloat 3s ease-in-out infinite;pointer-events:auto;
-}
+/* 刮刮乐页面 */
+#scratchPage{position:fixed;top:0;left:0;width:100%;height:100%;z-index:8;display:flex;align-items:center;justify-content:center;flex-direction:column;opacity:0;pointer-events:none;transition:opacity 0.5s ease}
+#scratchPage.active{opacity:1;pointer-events:auto}
+#scratchPage .scratchHint{color:#c2185b;font-size:15px;margin-bottom:12px;font-weight:600;letter-spacing:0.04em}
+#scratchPage .scratchContainer{position:relative;width:min(300px,75vw);height:min(300px,75vw)}
+#scratchPage .scratchPrize{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#fff0f3;border-radius:20px;border:3px dashed #e91e63;font-size:clamp(1.2rem,4vw,1.8rem);color:#c2185b;font-weight:800;text-align:center;letter-spacing:0.04em;line-height:1.6}
+#scratchPage .scratchPrize .big{font-size:clamp(1.8rem,6vw,2.8rem)}
+#scratchPage .scratchCanvas{cursor:pointer;touch-action:none;position:absolute;top:0;left:0;width:100%;height:100%;border-radius:20px}
+
+/* 刮刮乐彩带 */
+.confetti{position:fixed;z-index:250;pointer-events:none;animation:confettiFall 1.5s ease-out forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+/* 时光卡片 */
+#daysCard{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:25;background:rgba(255,255,255,0.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:2px solid #f8bbd0;border-radius:20px;padding:10px 20px;text-align:center;box-shadow:0 6px 24px rgba(233,30,99,0.16);animation:cardFloat 3s ease-in-out infinite;pointer-events:auto}
 @keyframes cardFloat{0%,100%{transform:translateX(-50%)translateY(0)}50%{transform:translateX(-50%)translateY(-6px)}}
 #daysCard .daysLabel{font-size:12px;color:#ad1457;letter-spacing:0.06em;opacity:0.8}
-#daysCard .daysNumber{
-  font-size:clamp(1.8rem,5vw,2.8rem);font-weight:800;
-  background:linear-gradient(135deg,#e91e63,#ff6f91);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  letter-spacing:0.04em;line-height:1.2;
-}
+#daysCard .daysNumber{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:800;background:linear-gradient(135deg,#e91e63,#ff6f91);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.04em;line-height:1.2}
 
-/* ============ 滑动视觉反馈层 ============ */
-#swipeOverlay{
-  position:fixed;top:0;left:0;width:100%;height:100%;z-index:3;
-  pointer-events:none;opacity:0;transition:opacity 0.15s ease;
-}
-#swipeOverlay.show{opacity:1}
+#swipeOverlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:3;pointer-events:none;opacity:0;transition:opacity 0.15s ease}
 
-/* ============ 响应式 ============ */
-@media (max-width:600px){
+@media(max-width:600px){
   .photo-card .polaroid{width:110px;padding:5px 5px 18px 5px}
   .photo-card .polaroid img{width:100px;height:100px}
   .photo-card .polaroid::after{font-size:10px;bottom:3px}
-  #infoPanel{bottom:62px;left:10px;padding:8px 12px;font-size:11px}
+  #infoPanel{bottom:56px;left:10px;padding:8px 12px;font-size:11px}
   #musicBtn{bottom:14px;right:10px;width:42px;height:42px;font-size:20px}
   #fullscreenViewer .navBtn{width:38px;height:38px;font-size:18px}
-  #pageDots{bottom:72px}
+  #pageDots{bottom:64px}
+  #messagePage .loveNote{font-size:12px}
+  #messagePage .boardWrapper{max-height:55vh}
 }
 </style>
 </head>
@@ -241,13 +122,12 @@ html,body{
   <div class="subtitle">致我最爱的萌萌</div>
 </div>
 
+<div id="pageOverlay"><span class="msg"></span></div>
+
 <div id="photoContainer"></div>
 
 <div id="pageDots">
-  <span class="dot active"></span>
-  <span class="dot"></span>
-  <span class="dot"></span>
-  <span class="dot"></span>
+  <span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
 </div>
 
 <div id="fullscreenViewer">
@@ -271,7 +151,23 @@ html,body{
 
 <button id="musicBtn" class="playing">🎵</button>
 
+<!-- 刮刮乐页面 -->
+<div id="scratchPage">
+  <div class="scratchHint">用手指刮开看看里面是什么</div>
+  <div class="scratchContainer">
+    <div class="scratchPrize">
+      <div>🎊</div>
+      <div class="big">特等奖！</div>
+      <div>永远在一起！</div>
+      <div>❤️</div>
+    </div>
+    <canvas class="scratchCanvas" id="scratchCanvas"></canvas>
+  </div>
+</div>
+
+<!-- 留言板页面 -->
 <div id="messagePage">
+  <div class="loveNote">萌萌，我们在一起之后你的第一个生日，我没能在你身边，只以此拙劣的"小乐趣"送给你，愿你天天开心，期待以后陪你度过的每一个生日！</div>
   <div class="boardWrapper">
     <div class="boardTitle">把你想说的话，贴在这里叭</div>
     <div class="inputRow">
@@ -283,806 +179,339 @@ html,body{
   </div>
 </div>
 
+<!-- 图片预加载隐藏层 -->
+<div style="display:none" aria-hidden="true" id="preloadContainer"></div>
+
 <script>
 /* =========================================================================
- *  浪漫生日祝福网站 — 上下滑动三页版
- *  第1页：爱心爆炸+合照花雨 | 第2页：独照花雨 | 第3页：留言板
- *  向上滑动 = 下一页（从下方淡入），向下滑动 = 上一页（向上方淡出）
+ *  浪漫生日祝福网站 — 5页滑动版
+ *  0=爱心 1=合照 2=独照 3=刮刮乐 4=留言板
  * ========================================================================= */
 
 const CONFIG = {
   startDate: new Date('2026-01-20'),
-  heartDuration: 3800,
-  burstDuration: 1300,
-  particleCount: 2400,
-  sparkleCount: 70,
-  photoFallInterval: 2000,
-  maxFallingPhotos: 8,
-  heartScale: 0.7,
-  fallSpeedBase: 0.85,     // 基础下落速度
-  fallSpeedRange: 0.55,
+  heartDuration: 3800, burstDuration: 1300,
+  particleCount: 2400, sparkleCount: 70,
+  photoFallInterval: 2000, maxFallingPhotos: 8,
+  heartScale: 0.7, fallSpeedBase: 0.85, fallSpeedRange: 0.55,
 };
 const isMobile = window.innerWidth < 768;
-if (isMobile) {
-  CONFIG.particleCount = 1400;
-  CONFIG.sparkleCount = 35;
-  CONFIG.maxFallingPhotos = 6;
-}
+if (isMobile) { CONFIG.particleCount = 1400; CONFIG.sparkleCount = 35; CONFIG.maxFallingPhotos = 6; }
 
 const PHOTO_PATHS = {
-  together: [
-    '微信图片_20260522201856_61_100.jpg','微信图片_20260522201857_62_100.jpg',
-    '微信图片_20260522201858_63_100.jpg','微信图片_20260522201900_65_100.jpg',
-    '微信图片_20260522201900_66_100.jpg','微信图片_20260522201901_67_100.jpg',
-    '微信图片_20260522201902_68_100.jpg','微信图片_20260522201903_69_100.jpg',
-    '微信图片_20260522201905_70_100.jpg','微信图片_20260522201905_71_100.jpg',
-    '微信图片_20260522201907_72_100.jpg','微信图片_20260522201907_73_100.jpg',
-  ],
-  solo: [
-    '微信图片_20260522201846_49_100.jpg','微信图片_20260522201847_50_100.jpg',
-    '微信图片_20260522201847_51_100.jpg','微信图片_20260522201848_52_100.jpg',
-    '微信图片_20260522201849_53_100.jpg','微信图片_20260522201850_54_100.jpg',
-    '微信图片_20260522201851_55_100.jpg','微信图片_20260522201852_56_100.jpg',
-    '微信图片_20260522201852_57_100.jpg','微信图片_20260522201853_58_100.jpg',
-    '微信图片_20260522201854_59_100.jpg','微信图片_20260522201855_60_100.jpg',
-    '微信图片_20260522201859_64_100.jpg',
-  ]
+  together: ['微信图片_20260522201856_61_100.jpg','微信图片_20260522201857_62_100.jpg','微信图片_20260522201858_63_100.jpg','微信图片_20260522201900_65_100.jpg','微信图片_20260522201900_66_100.jpg','微信图片_20260522201901_67_100.jpg','微信图片_20260522201902_68_100.jpg','微信图片_20260522201903_69_100.jpg','微信图片_20260522201905_70_100.jpg','微信图片_20260522201905_71_100.jpg','微信图片_20260522201907_72_100.jpg','微信图片_20260522201907_73_100.jpg'],
+  solo: ['微信图片_20260522201846_49_100.jpg','微信图片_20260522201847_50_100.jpg','微信图片_20260522201847_51_100.jpg','微信图片_20260522201848_52_100.jpg','微信图片_20260522201849_53_100.jpg','微信图片_20260522201850_54_100.jpg','微信图片_20260522201851_55_100.jpg','微信图片_20260522201852_56_100.jpg','微信图片_20260522201852_57_100.jpg','微信图片_20260522201853_58_100.jpg','微信图片_20260522201854_59_100.jpg','微信图片_20260522201855_60_100.jpg','微信图片_20260522201859_64_100.jpg']
 };
 
 // ==================== 全局状态 ====================
-let state = {
-  phase: 'heart',
-  currentPage: 0,
-  collectedCount: 0,
-  musicPlaying: true,
-  fullscreenIndex: -1,
-};
+let state = { phase:'heart', currentPage:0, collectedCount:0, musicPlaying:true, fullscreenIndex:-1, scratchDone:false };
 
-// ==================== DOM 引用 ====================
-const canvas = document.getElementById('particleCanvas');
-const ctx = canvas.getContext('2d');
-const photoContainer = document.getElementById('photoContainer');
-const heroText = document.getElementById('heroText');
-const infoFalling = document.getElementById('fallingCount');
-const infoCollected = document.getElementById('collectedCount');
-const musicBtn = document.getElementById('musicBtn');
-const fullscreenViewer = document.getElementById('fullscreenViewer');
-const fullscreenImg = fullscreenViewer.querySelector('img');
-const fullscreenCounter = fullscreenViewer.querySelector('.counter');
-const daysNum = document.getElementById('daysNum');
-const messagePage = document.getElementById('messagePage');
-const msgNickname = document.getElementById('msgNickname');
-const msgContentInput = document.getElementById('msgContent');
-const msgSend = document.getElementById('msgSend');
-const notesContainer = document.getElementById('notesContainer');
-const pageDots = document.getElementById('pageDots').querySelectorAll('.dot');
-const infoPanel = document.getElementById('infoPanel');
-
-// 圆角矩形路径辅助
-function roundRectPath(ctx, x, y, w, h, r) {
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-}
+// ==================== DOM ====================
+const canvas=document.getElementById('particleCanvas'), ctx=canvas.getContext('2d');
+const photoContainer=document.getElementById('photoContainer');
+const heroText=document.getElementById('heroText');
+const pageOverlay=document.getElementById('pageOverlay'), pageOverlayMsg=pageOverlay.querySelector('.msg');
+const infoFalling=document.getElementById('fallingCount'), infoCollected=document.getElementById('collectedCount');
+const musicBtn=document.getElementById('musicBtn');
+const fullscreenViewer=document.getElementById('fullscreenViewer');
+const fullscreenImg=fullscreenViewer.querySelector('img'), fullscreenCounter=fullscreenViewer.querySelector('.counter');
+const daysNum=document.getElementById('daysNum');
+const messagePage=document.getElementById('messagePage');
+const msgNickname=document.getElementById('msgNickname'), msgContentInput=document.getElementById('msgContent'), msgSend=document.getElementById('msgSend');
+const notesContainer=document.getElementById('notesContainer');
+const pageDots=document.getElementById('pageDots').querySelectorAll('.dot');
+const infoPanel=document.getElementById('infoPanel');
+const scratchPage=document.getElementById('scratchPage'), scratchCanvas=document.getElementById('scratchCanvas');
+const preloadContainer=document.getElementById('preloadContainer');
 
 // ==================== Canvas 尺寸 ====================
-function resizeCanvas() {
-  const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(window.innerWidth, 320);
-  const h = Math.max(window.innerHeight, 480);
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
-  if (ctx) { ctx.setTransform(1,0,0,1,0,0); ctx.scale(dpr,dpr); }
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+function roundRectPath(c,x,y,w,h,r){c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.arcTo(x+w,y,x+w,y+r,r);c.lineTo(x+w,y+h-r);c.arcTo(x+w,y+h,x+w-r,y+h,r);c.lineTo(x+r,y+h);c.arcTo(x,y+h,x,y+h-r,r);c.lineTo(x,y+r);c.arcTo(x,y,x+r,y,r)}
+function resizeCanvas(){const d=window.devicePixelRatio||1,w=Math.max(window.innerWidth,320),h=Math.max(window.innerHeight,480);canvas.width=w*d;canvas.height=h*d;canvas.style.width=w+'px';canvas.style.height=h+'px';if(ctx){ctx.setTransform(1,0,0,1,0,0);ctx.scale(d,d)}}
+window.addEventListener('resize',resizeCanvas);resizeCanvas();
 
-// ==================== 粒子系统 ====================
+// ==================== 粒子 ====================
 class Particle {
-  constructor() { this.reset(); }
-  reset() {
-    this.t = Math.random() * Math.PI * 2;
-    this.heartRadius = Math.pow(Math.random(), 0.55);
-    this.baseSize = 1.2 + Math.random() * 3.2;
-    this.size = this.baseSize;
-    const hue = 340 + Math.random() * 30;
-    this.color = `hsla(${hue},${60+Math.random()*40}%,${50+Math.random()*35}%,${0.7+Math.random()*0.3})`;
-    this.glowColor = `hsla(${hue},${60+Math.random()*40}%,${60+Math.random()*25}%,0.5)`;
-    this.floatOffset = Math.random() * Math.PI * 2;
-    this.floatSpeed = 0.6 + Math.random() * 1.2;
-    this.floatAmp = 1 + Math.random() * 4;
-    this.rotation = Math.random() * Math.PI * 2;
-    this.rotationSpeed = (Math.random() - 0.5) * 0.03;
-    this.trail = [];
-    this.maxTrail = isMobile ? 1 : 2 + Math.floor(Math.random() * 3);
-    this.petalX = this.petalY = 0;
-    this.petalVX = this.petalVY = 0;
-    this.petalRotation = this.petalRotSpeed = 0;
-    this.petalSway = this.petalSwaySpeed = 0;
-    this.petalSize = this.baseSize * (0.8 + Math.random() * 2);
-  }
-  getHeartPos(scale, time) {
-    const hx = 16 * Math.pow(Math.sin(this.t), 3);
-    // 降低高频项系数让爱心底部更圆润
-    const hy = 13*Math.cos(this.t) - 3.5*Math.cos(2*this.t) - 1.5*Math.cos(3*this.t) - 0.5*Math.cos(4*this.t);
-    const breathe = 1 + Math.sin(time * 1.8) * 0.025;
-    return {
-      x: hx * this.heartRadius * scale * breathe + Math.cos(time*this.floatSpeed*0.7+this.floatOffset)*this.floatAmp*0.5,
-      y: -hy * this.heartRadius * scale * breathe + Math.sin(time*this.floatSpeed+this.floatOffset)*this.floatAmp,
-    };
-  }
-  initPetal(hp, cx, cy) {
-    this.petalX = cx + hp.x; this.petalY = cy + hp.y;
-    const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 6;
-    this.petalVX = Math.cos(a) * sp + (Math.random()-0.5)*3;
-    this.petalVY = Math.sin(a) * sp - Math.random()*4 - 2;
-    this.petalRotation = Math.random() * Math.PI * 2;
-    this.petalRotSpeed = (Math.random()-0.5)*0.06;
-    this.petalSway = 0; this.petalSwaySpeed = 0.01+Math.random()*0.025;
-  }
-  updatePetal(g, w) {
-    this.petalVY += g; this.petalVX += w;
-    this.petalX += this.petalVX; this.petalY += this.petalVY;
-    this.petalRotation += this.petalRotSpeed;
-    this.petalSway += this.petalSwaySpeed;
-    this.petalX += Math.sin(this.petalSway)*0.4;
-    if (this.petalY > window.innerHeight + 60) {
-      this.petalY = -40; this.petalX = Math.random()*window.innerWidth;
-      this.petalVY = 0.3+Math.random()*1.2;
-    }
-  }
-  updateTrail(x, y) {
-    this.trail.push({x,y,life:1});
-    if (this.trail.length > this.maxTrail) this.trail.shift();
-    for (let t of this.trail) t.life -= 0.25;
-    this.trail = this.trail.filter(t => t.life > 0);
-  }
-  drawHeart(ctx, x, y, alpha) {
-    ctx.save(); ctx.globalAlpha = alpha*0.35; ctx.fillStyle = this.glowColor;
-    ctx.beginPath(); ctx.arc(x,y,this.size*2.5,0,Math.PI*2); ctx.fill(); ctx.restore();
-    for (const t of this.trail) {
-      ctx.save(); ctx.globalAlpha = alpha*t.life*0.4; ctx.fillStyle = this.color;
-      ctx.beginPath(); ctx.arc(t.x,t.y,this.size*0.7,0,Math.PI*2); ctx.fill(); ctx.restore();
-    }
-    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x,y); ctx.rotate(this.rotation);
-    ctx.fillStyle = this.color; const s = this.size;
-    ctx.beginPath();
-    ctx.moveTo(0,-s); ctx.bezierCurveTo(s*0.6,-s*0.6,s*0.8,s*0.3,0,s);
-    ctx.bezierCurveTo(-s*0.8,s*0.3,-s*0.6,-s*0.6,0,-s); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.4)';
-    ctx.beginPath(); ctx.arc(0,0,s*0.3,0,Math.PI*2); ctx.fill(); ctx.restore();
-  }
-  drawPetal(ctx, x, y, alpha) {
-    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x,y); ctx.rotate(this.petalRotation);
-    ctx.fillStyle = this.color; const s = this.petalSize;
-    ctx.beginPath(); ctx.moveTo(0,-s);
-    ctx.bezierCurveTo(s*0.5,-s*0.5,s*0.7,s*0.2,0,s*0.9);
-    ctx.bezierCurveTo(-s*0.7,s*0.2,-s*0.5,-s*0.5,0,-s); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.3)';
-    ctx.beginPath(); ctx.arc(0,0,s*0.25,0,Math.PI*2); ctx.fill(); ctx.restore();
-  }
+  constructor(){this.reset()}
+  reset(){this.t=Math.random()*Math.PI*2;this.heartRadius=Math.pow(Math.random(),0.55);this.baseSize=1.2+Math.random()*3.2;this.size=this.baseSize;const h=340+Math.random()*30;this.color=`hsla(${h},${60+Math.random()*40}%,${50+Math.random()*35}%,${0.7+Math.random()*0.3})`;this.glowColor=`hsla(${h},${60+Math.random()*40}%,${60+Math.random()*25}%,0.5)`;this.floatOffset=Math.random()*Math.PI*2;this.floatSpeed=0.6+Math.random()*1.2;this.floatAmp=1+Math.random()*4;this.rotation=Math.random()*Math.PI*2;this.rotationSpeed=(Math.random()-0.5)*0.03;this.trail=[];this.maxTrail=isMobile?1:2+Math.floor(Math.random()*3);this.petalX=this.petalY=0;this.petalVX=this.petalVY=0;this.petalRotation=this.petalRotSpeed=0;this.petalSway=this.petalSwaySpeed=0;this.petalSize=this.baseSize*(0.8+Math.random()*2)}
+  getHeartPos(sc,t){const hx=16*Math.pow(Math.sin(this.t),3);const hy=13*Math.cos(this.t)-3.5*Math.cos(2*this.t)-1.5*Math.cos(3*this.t)-0.5*Math.cos(4*this.t);const br=1+Math.sin(t*1.8)*0.025;return{x:hx*this.heartRadius*sc*br+Math.cos(t*this.floatSpeed*0.7+this.floatOffset)*this.floatAmp*0.5,y:-hy*this.heartRadius*sc*br+Math.sin(t*this.floatSpeed+this.floatOffset)*this.floatAmp}}
+  initPetal(hp,cx,cy){this.petalX=cx+hp.x;this.petalY=cy+hp.y;const a=Math.random()*Math.PI*2,sp=1+Math.random()*6;this.petalVX=Math.cos(a)*sp+(Math.random()-0.5)*3;this.petalVY=Math.sin(a)*sp-Math.random()*4-2;this.petalRotation=Math.random()*Math.PI*2;this.petalRotSpeed=(Math.random()-0.5)*0.06;this.petalSway=0;this.petalSwaySpeed=0.01+Math.random()*0.025}
+  updatePetal(g,w){this.petalVY+=g;this.petalVX+=w;this.petalX+=this.petalVX;this.petalY+=this.petalVY;this.petalRotation+=this.petalRotSpeed;this.petalSway+=this.petalSwaySpeed;this.petalX+=Math.sin(this.petalSway)*0.4;if(this.petalY>window.innerHeight+60){this.petalY=-40;this.petalX=Math.random()*window.innerWidth;this.petalVY=0.3+Math.random()*1.2}}
+  updateTrail(x,y){this.trail.push({x,y,life:1});if(this.trail.length>this.maxTrail)this.trail.shift();for(let t of this.trail)t.life-=0.25;this.trail=this.trail.filter(t=>t.life>0)}
+  drawHeart(c,x,y,a){c.save();c.globalAlpha=a*0.35;c.fillStyle=this.glowColor;c.beginPath();c.arc(x,y,this.size*2.5,0,Math.PI*2);c.fill();c.restore();for(const t of this.trail){c.save();c.globalAlpha=a*t.life*0.4;c.fillStyle=this.color;c.beginPath();c.arc(t.x,t.y,this.size*0.7,0,Math.PI*2);c.fill();c.restore()}c.save();c.globalAlpha=a;c.translate(x,y);c.rotate(this.rotation);c.fillStyle=this.color;const s=this.size;c.beginPath();c.moveTo(0,-s);c.bezierCurveTo(s*0.6,-s*0.6,s*0.8,s*0.3,0,s);c.bezierCurveTo(-s*0.8,s*0.3,-s*0.6,-s*0.6,0,-s);c.fill();c.fillStyle='rgba(255,255,255,0.4)';c.beginPath();c.arc(0,0,s*0.3,0,Math.PI*2);c.fill();c.restore()}
+  drawPetal(c,x,y,a){c.save();c.globalAlpha=a;c.translate(x,y);c.rotate(this.petalRotation);c.fillStyle=this.color;const s=this.petalSize;c.beginPath();c.moveTo(0,-s);c.bezierCurveTo(s*0.5,-s*0.5,s*0.7,s*0.2,0,s*0.9);c.bezierCurveTo(-s*0.7,s*0.2,-s*0.5,-s*0.5,0,-s);c.fill();c.fillStyle='rgba(255,255,255,0.3)';c.beginPath();c.arc(0,0,s*0.25,0,Math.PI*2);c.fill();c.restore()}
 }
-// ==================== 蛋糕绘制（首页hero文字下方） ====================
-let cakeAlpha = 0;
-function drawCake(ctx, time, alpha) {
-  if (alpha <= 0.01) return;
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2 + 100; // 在hero文字下方
-  const sc = Math.min(window.innerWidth, window.innerHeight) / 700;
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-
-  // --- 蛋糕主体（双层） ---
-  const bw1 = 140 * sc, bh1 = 60 * sc;
-  const b1y = cy + 10 * sc;
-  const r1 = Math.min(8*sc, bh1/3);
-  ctx.fillStyle = '#fce4ec';
-  ctx.beginPath(); roundRectPath(ctx, cx-bw1/2, b1y, bw1, bh1, r1); ctx.fill();
-  ctx.strokeStyle = '#f8bbd0'; ctx.lineWidth = 2*sc;
-  ctx.beginPath(); roundRectPath(ctx, cx-bw1/2, b1y, bw1, bh1, r1); ctx.stroke();
-
-  const bw2 = 110 * sc, bh2 = 50 * sc;
-  const b2y = b1y - bh2 + 5*sc;
-  const r2 = Math.min(6*sc, bh2/3);
-  ctx.fillStyle = '#fff0f3';
-  ctx.beginPath(); roundRectPath(ctx, cx-bw2/2, b2y, bw2, bh2, r2); ctx.fill();
-  ctx.strokeStyle = '#f8bbd0';
-  ctx.beginPath(); roundRectPath(ctx, cx-bw2/2, b2y, bw2, bh2, r2); ctx.stroke();
-
-  // --- 奶油裱花 ---
-  ctx.fillStyle = '#fff';
-  const dripR = 7 * sc;
-  for (let dx = -bw2/2 + dripR; dx < bw2/2; dx += dripR * 2.2) {
-    ctx.beginPath();
-    ctx.arc(cx + dx, b2y, dripR, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // --- 蜡烛 ---
-  const candleW = 8 * sc, candleH = 45 * sc;
-  const candleX = cx, candleY = b2y - candleH + 5*sc;
-  ctx.fillStyle = '#ffb6c1';
-  ctx.fillRect(candleX - candleW/2, candleY, candleW, candleH);
-  // 蜡烛条纹
-  ctx.fillStyle = '#ff91a4';
-  ctx.fillRect(candleX - candleW/4, candleY, candleW/2, candleH);
-
-  // --- 火苗（动态） ---
-  const flameBaseY = candleY;
-  const flicker = Math.sin(time * 18) * 0.3 + Math.sin(time * 23 + 1.5) * 0.25 + Math.sin(time * 31) * 0.15;
-  const flameH = (20 + flicker * 8) * sc;
-  const flameW = (9 + Math.abs(flicker) * 4) * sc;
-
-  // 火焰外层（橙黄光晕）
-  const glowGrad = ctx.createRadialGradient(candleX, flameBaseY - flameH*0.3, flameW*0.5,
-    candleX, flameBaseY - flameH*0.6, flameH*1.1);
-  glowGrad.addColorStop(0, 'rgba(255,200,50,0.7)');
-  glowGrad.addColorStop(0.5, 'rgba(255,150,20,0.4)');
-  glowGrad.addColorStop(1, 'rgba(255,100,0,0)');
-  ctx.fillStyle = glowGrad;
-  ctx.beginPath();
-  ctx.arc(candleX, flameBaseY - flameH*0.3, flameH*1.1, 0, Math.PI*2);
-  ctx.fill();
-
-  // 火焰内层
-  const flameGrad = ctx.createLinearGradient(candleX, flameBaseY, candleX, flameBaseY - flameH);
-  flameGrad.addColorStop(0, '#ff6600');
-  flameGrad.addColorStop(0.3, '#ff9900');
-  flameGrad.addColorStop(0.6, '#ffcc00');
-  flameGrad.addColorStop(1, '#fff5cc');
-  ctx.fillStyle = flameGrad;
-  ctx.beginPath();
-  ctx.moveTo(candleX - flameW, flameBaseY);
-  ctx.quadraticCurveTo(candleX - flameW*0.3, flameBaseY - flameH*0.6, candleX + flicker*3*sc, flameBaseY - flameH);
-  ctx.quadraticCurveTo(candleX + flameW*0.3, flameBaseY - flameH*0.6, candleX + flameW, flameBaseY);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-const particles = [];
-for (let i = 0; i < CONFIG.particleCount; i++) particles.push(new Particle());
+const particles=[];
+for(let i=0;i<CONFIG.particleCount;i++)particles.push(new Particle());
 
 // ==================== 萤火虫 ====================
-class Sparkle {
-  constructor() { this.reset(true); }
-  reset(init) {
-    this.x = Math.random()*window.innerWidth;
-    this.y = init ? Math.random()*window.innerHeight : -20;
-    this.size = 0.8+Math.random()*2.2;
-    this.speedY = 0.15+Math.random()*0.5;
-    this.speedX = (Math.random()-0.5)*0.3;
-    this.opacity = 0.2+Math.random()*0.5;
-    this.phase = Math.random()*Math.PI*2;
-    this.flickerSpeed = 1+Math.random()*2;
-  }
-  update() {
-    this.y -= this.speedY; this.x += this.speedX+Math.sin(this.phase)*0.2;
-    this.phase += 0.02;
-    if (this.y < -20) { this.y = window.innerHeight+20; this.x = Math.random()*window.innerWidth; }
-    if (this.x < -20) this.x = window.innerWidth+20;
-    if (this.x > window.innerWidth+20) this.x = -20;
-  }
-  draw(ctx, time) {
-    const f = 0.5+0.5*Math.sin(time*this.flickerSpeed+this.phase);
-    ctx.save(); ctx.globalAlpha = this.opacity*f;
-    const g = ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size*2);
-    g.addColorStop(0,'rgba(255,235,180,1)');
-    g.addColorStop(0.4,'rgba(255,220,150,0.7)');
-    g.addColorStop(1,'rgba(255,200,100,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(this.x,this.y,this.size*2,0,Math.PI*2); ctx.fill();
-    ctx.restore();
+class Sparkle{constructor(){this.reset(true)}reset(init){this.x=Math.random()*window.innerWidth;this.y=init?Math.random()*window.innerHeight:-20;this.size=0.8+Math.random()*2.2;this.speedY=0.15+Math.random()*0.5;this.speedX=(Math.random()-0.5)*0.3;this.opacity=0.2+Math.random()*0.5;this.phase=Math.random()*Math.PI*2;this.flickerSpeed=1+Math.random()*2}update(){this.y-=this.speedY;this.x+=this.speedX+Math.sin(this.phase)*0.2;this.phase+=0.02;if(this.y<-20){this.y=window.innerHeight+20;this.x=Math.random()*window.innerWidth}if(this.x<-20)this.x=window.innerWidth+20;if(this.x>window.innerWidth+20)this.x=-20}draw(c,t){const f=0.5+0.5*Math.sin(t*this.flickerSpeed+this.phase);c.save();c.globalAlpha=this.opacity*f;const g=c.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size*2);g.addColorStop(0,'rgba(255,235,180,1)');g.addColorStop(0.4,'rgba(255,220,150,0.7)');g.addColorStop(1,'rgba(255,200,100,0)');c.fillStyle=g;c.beginPath();c.arc(this.x,this.y,this.size*2,0,Math.PI*2);c.fill();c.restore()}}
+const sparkles=[];
+for(let i=0;i<CONFIG.sparkleCount;i++)sparkles.push(new Sparkle());
+
+// ==================== 蛋糕 ====================
+let cakeAlpha=0;
+function drawCake(c,t,a){
+  if(a<=0.01)return;
+  const cx=window.innerWidth/2,cy=window.innerHeight/2+80;
+  const sc=Math.min(window.innerWidth,window.innerHeight)/450; // 更大的蛋糕
+  c.save();c.globalAlpha=a;
+  const bw1=140*sc,bh1=60*sc,b1y=cy+10*sc,r1=Math.min(8*sc,bh1/3);
+  c.fillStyle='#fce4ec';c.beginPath();roundRectPath(c,cx-bw1/2,b1y,bw1,bh1,r1);c.fill();
+  c.strokeStyle='#f8bbd0';c.lineWidth=2*sc;c.beginPath();roundRectPath(c,cx-bw1/2,b1y,bw1,bh1,r1);c.stroke();
+  const bw2=110*sc,bh2=50*sc,b2y=b1y-bh2+5*sc,r2=Math.min(6*sc,bh2/3);
+  c.fillStyle='#fff0f3';c.beginPath();roundRectPath(c,cx-bw2/2,b2y,bw2,bh2,r2);c.fill();
+  c.strokeStyle='#f8bbd0';c.beginPath();roundRectPath(c,cx-bw2/2,b2y,bw2,bh2,r2);c.stroke();
+  c.fillStyle='#fff';const dr=7*sc;
+  for(let dx=-bw2/2+dr;dx<bw2/2;dx+=dr*2.2){c.beginPath();c.arc(cx+dx,b2y,dr,0,Math.PI*2);c.fill()}
+  const cw=8*sc,ch=45*sc,cx2=cx,cy2=b2y-ch+5*sc;
+  c.fillStyle='#ffb6c1';c.fillRect(cx2-cw/2,cy2,cw,ch);
+  c.fillStyle='#ff91a4';c.fillRect(cx2-cw/4,cy2,cw/2,ch);
+  const fby=cy2,flk=Math.sin(t*18)*0.3+Math.sin(t*23+1.5)*0.25+Math.sin(t*31)*0.15;
+  const fh=(20+flk*8)*sc,fw=(9+Math.abs(flk)*4)*sc;
+  const gg=c.createRadialGradient(cx2,fby-fh*0.3,fw*0.5,cx2,fby-fh*0.6,fh*1.1);
+  gg.addColorStop(0,'rgba(255,200,50,0.7)');gg.addColorStop(0.5,'rgba(255,150,20,0.4)');gg.addColorStop(1,'rgba(255,100,0,0)');
+  c.fillStyle=gg;c.beginPath();c.arc(cx2,fby-fh*0.3,fh*1.1,0,Math.PI*2);c.fill();
+  const fg=c.createLinearGradient(cx2,fby,cx2,fby-fh);
+  fg.addColorStop(0,'#ff6600');fg.addColorStop(0.3,'#ff9900');fg.addColorStop(0.6,'#ffcc00');fg.addColorStop(1,'#fff5cc');
+  c.fillStyle=fg;c.beginPath();c.moveTo(cx2-fw,fby);c.quadraticCurveTo(cx2-fw*0.3,fby-fh*0.6,cx2+flk*3*sc,fby-fh);c.quadraticCurveTo(cx2+fw*0.3,fby-fh*0.6,cx2+fw,fby);c.fill();
+  c.restore();
+}
+
+// ==================== 刮刮乐 ====================
+let scratchCtx=null,scratchScratched=0;
+function initScratchCard(){
+  if(state.scratchDone)return;
+  const w=scratchCanvas.clientWidth,h=scratchCanvas.clientHeight;
+  scratchCanvas.width=w;scratchCanvas.height=h;
+  scratchCtx=scratchCanvas.getContext('2d');
+  scratchCtx.fillStyle='#c0c0c0';
+  scratchCtx.fillRect(0,0,w,h);
+  const grad=scratchCtx.createLinearGradient(0,0,w,h);
+  grad.addColorStop(0,'#b0b0b0');grad.addColorStop(0.5,'#d0d0d0');grad.addColorStop(1,'#a0a0a0');
+  scratchCtx.fillStyle=grad;scratchCtx.fillRect(0,0,w,h);
+  scratchCtx.fillStyle='#888';scratchCtx.font=`${w*0.06}px sans-serif`;
+  scratchCtx.textAlign='center';scratchCtx.fillText('刮开有惊喜 ✨',w/2,h/2);
+  scratchScratched=0;
+}
+function scratchAt(ex,ey){
+  if(!scratchCtx||state.scratchDone)return;
+  const r=scratchCanvas.getBoundingClientRect();
+  const x=ex-r.left,y=ey-r.top;
+  scratchCtx.globalCompositeOperation='destination-out';
+  scratchCtx.beginPath();scratchCtx.arc(x,y,22,0,Math.PI*2);scratchCtx.fill();
+  scratchScratched++;
+  if(scratchScratched>40&&!state.scratchDone){revealScratch()}
+}
+function revealScratch(){
+  state.scratchDone=true;
+  scratchCtx.globalCompositeOperation='source-over';
+  scratchCtx.clearRect(0,0,scratchCanvas.width,scratchCanvas.height);
+  spawnConfetti();
+  // 刮刮乐"弹一下"
+  scratchCanvas.style.transition='transform 0.3s ease';
+  scratchCanvas.style.transform='scale(1.08)';
+  setTimeout(()=>{scratchCanvas.style.transform='scale(1)'},300);
+}
+function spawnConfetti(){
+  const colors=['#ff0','#f0f','#0ff','#f00','#0f0','#ff6600','#ff0099','#00ccff'];
+  for(let i=0;i<60;i++){
+    const el=document.createElement('div');el.className='confetti';
+    el.style.left=Math.random()*100+'vw';
+    el.style.top=-(Math.random()*40+10)+'px';
+    el.style.width=(6+Math.random()*10)+'px';
+    el.style.height=(8+Math.random()*14)+'px';
+    el.style.background=colors[Math.floor(Math.random()*colors.length)];
+    el.style.borderRadius=Math.random()>0.5?'50%':'2px';
+    el.style.animationDuration=(1+Math.random()*1.5)+'s';
+    el.style.animationDelay=Math.random()*0.3+'s';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),2000);
   }
 }
-const sparkles = [];
-for (let i = 0; i < CONFIG.sparkleCount; i++) sparkles.push(new Sparkle());
+
+// 刮刮乐触摸
+scratchCanvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];scratchAt(t.clientX,t.clientY)},{passive:false});
+scratchCanvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];scratchAt(t.clientX,t.clientY)},{passive:false});
+scratchCanvas.addEventListener('mousemove',e=>{if(e.buttons){scratchAt(e.clientX,e.clientY)}});
+scratchCanvas.addEventListener('mousedown',e=>{scratchAt(e.clientX,e.clientY)});
 
 // ==================== 照片卡片 ====================
-const activePhotoIndices = [];
-function getAlbum(p) { return p===1?'合照':'独照'; }
-function getList(p) { return p===1?PHOTO_PATHS.together:PHOTO_PATHS.solo; }
+const activePhotoIndices=[];
+function getAlbum(p){return p===1?'合照':'独照'}
+function getList(p){return p===1?PHOTO_PATHS.together:PHOTO_PATHS.solo}
+function getDistributedX(){const m=30,uw=window.innerWidth-m*2,sw=uw/(CONFIG.maxFallingPhotos+2),sec=Math.floor(Math.random()*(CONFIG.maxFallingPhotos+2));return m+sec*sw+Math.random()*sw*0.5}
 
-function getDistributedX() {
-  const m = 30, uw = window.innerWidth - m*2;
-  const sw = uw / (CONFIG.maxFallingPhotos + 2);
-  const sec = Math.floor(Math.random()*(CONFIG.maxFallingPhotos+2));
-  return m + sec*sw + Math.random()*sw*0.5;
-}
-
-class PhotoCard {
-  constructor(imgSrc, index) {
-    this.imgSrc = imgSrc; this.index = index;
-    this.x = getDistributedX();
-    this.y = -160 - Math.random()*300;
-    this.rotation = (Math.random()-0.5)*18;
-    this.rotationSpeed = (Math.random()-0.5)*0.25;
-    this.fallSpeed = CONFIG.fallSpeedBase + Math.random()*CONFIG.fallSpeedRange;
-    this.swayAmp = 12+Math.random()*30;
-    this.swaySpeed = 0.012+Math.random()*0.016;
-    this.swayPhase = Math.random()*Math.PI*2;
-    this.scale = 1; this.targetScale = 1;
-    this.dragging = false; this.collected = false;
-    this.dragOffsetX = 0; this.dragOffsetY = 0;
-    this.lastTouchDist = 0; this.pinchScale = 1;
-    this.element = null; this.imgElement = null;
+class PhotoCard{
+  constructor(src,idx){
+    this.imgSrc=src;this.index=idx;this.x=getDistributedX();this.y=-160-Math.random()*300;
+    this.rotation=(Math.random()-0.5)*18;this.rotationSpeed=(Math.random()-0.5)*0.25;
+    this.fallSpeed=CONFIG.fallSpeedBase+Math.random()*CONFIG.fallSpeedRange;
+    this.swayAmp=12+Math.random()*30;this.swaySpeed=0.012+Math.random()*0.016;
+    this.swayPhase=Math.random()*Math.PI*2;this.scale=1;this.targetScale=1;
+    this.dragging=false;this.collected=false;this.dragOffsetX=0;this.dragOffsetY=0;
+    this.lastTouchDist=0;this.pinchScale=1;this.element=null;this.imgElement=null;
     this.createDOM();
   }
-  createDOM() {
-    const card = document.createElement('div');
-    card.className = 'photo-card';
-    card.innerHTML = `<div class="polaroid"><img src="${this.imgSrc}" alt="照片" loading="lazy"></div>`;
-    this.element = card;
-    this.imgElement = card.querySelector('img');
-    // 图片加载完成后淡入
-    this.imgElement.addEventListener('load', () => {
-      this.imgElement.classList.add('loaded');
-    });
-    // 如果图片已缓存（complete=true）立即标记
-    if (this.imgElement.complete) {
-      this.imgElement.classList.add('loaded');
-    }
-    this.imgElement.addEventListener('error', () => {
-      const idx = activePhotoIndices.indexOf(this.index);
-      if (idx >= 0) activePhotoIndices.splice(idx, 1);
-      this.remove();
-    });
-
-    card.addEventListener('mousedown', e => this.onDragStart(e.clientX, e.clientY));
-    card.addEventListener('mouseenter', () => { if(!this.dragging) card.classList.add('touched'); });
-    card.addEventListener('mouseleave', () => { if(!this.dragging) card.classList.remove('touched'); });
-
-    card.addEventListener('touchstart', e => {
-      if (e.touches.length === 2) {
-        this.lastTouchDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-        return;
-      }
-      e.preventDefault();
-      card.classList.add('touched');
-      this.onDragStart(e.touches[0].clientX, e.touches[0].clientY);
-    }, {passive: false});
-    card.addEventListener('touchend', () => { card.classList.remove('touched'); });
-
-    card.addEventListener('dblclick', () => this.openFullscreen());
-    let lt = 0;
-    card.addEventListener('touchend', e => {
-      const n = Date.now();
-      if (n - lt < 300 && !this.dragging) this.openFullscreen();
-      lt = n;
-    });
-
+  createDOM(){
+    const card=document.createElement('div');card.className='photo-card';
+    card.innerHTML=`<div class="polaroid"><img src="${this.imgSrc}" alt="照片" loading="lazy"></div>`;
+    this.element=card;this.imgElement=card.querySelector('img');
+    if(this.imgElement.complete)this.imgElement.classList.add('loaded');
+    this.imgElement.addEventListener('load',()=>{this.imgElement.classList.add('loaded')});
+    this.imgElement.addEventListener('error',()=>{const i=activePhotoIndices.indexOf(this.index);if(i>=0)activePhotoIndices.splice(i,1);this.remove()});
+    card.addEventListener('mousedown',e=>this.onDragStart(e.clientX,e.clientY));
+    card.addEventListener('mouseenter',()=>{if(!this.dragging)card.classList.add('touched')});
+    card.addEventListener('mouseleave',()=>{if(!this.dragging)card.classList.remove('touched')});
+    card.addEventListener('touchstart',e=>{if(e.touches.length===2){this.lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);return}e.preventDefault();card.classList.add('touched');this.onDragStart(e.touches[0].clientX,e.touches[0].clientY)},{passive:false});
+    card.addEventListener('touchend',()=>{card.classList.remove('touched')});
+    card.addEventListener('dblclick',()=>this.openFullscreen());
+    let lt=0;card.addEventListener('touchend',e=>{const n=Date.now();if(n-lt<300&&!this.dragging)this.openFullscreen();lt=n});
     photoContainer.appendChild(card);
   }
-  onDragStart(px, py) {
-    if (state.phase !== 'falling') return;
-    this.dragging = true; this.collected = true;
-    this.element.classList.add('dragging');
-    const r = this.element.getBoundingClientRect();
-    this.dragOffsetX = px - r.left; this.dragOffsetY = py - r.top;
-    this.targetScale = 1.08;
-  }
-  onDragMove(px, py) {
-    if (!this.dragging) return;
-    this.x = px - this.dragOffsetX; this.y = py - this.dragOffsetY;
-    this.fallSpeed = 0;
-  }
-  onDragEnd() {
-    if (!this.dragging) return;
-    this.dragging = false;
-    this.element.classList.remove('dragging');
-    this.targetScale = 1;
-    setTimeout(() => {
-      if (!this.dragging) {
-        this.fallSpeed = CONFIG.fallSpeedBase+Math.random()*CONFIG.fallSpeedRange;
-        this.collected = false;
-        const idx = activePhotoIndices.indexOf(this.index);
-        if (idx >= 0) activePhotoIndices.splice(idx, 1);
-      }
-    }, 5000);
-  }
-  onPinchMove(touches) {
-    const d = Math.hypot(touches[0].clientX-touches[1].clientX, touches[0].clientY-touches[1].clientY);
-    if (this.lastTouchDist > 0) this.pinchScale = Math.min(3, Math.max(0.5, this.pinchScale*(d/this.lastTouchDist)));
-    this.lastTouchDist = d;
-  }
-  onPinchEnd() {
-    this.lastTouchDist = 0;
-    const anim = () => {
-      this.pinchScale += (1-this.pinchScale)*0.2;
-      if (Math.abs(this.pinchScale-1) > 0.01) requestAnimationFrame(anim);
-      else this.pinchScale = 1;
-    };
-    requestAnimationFrame(anim);
-  }
-  openFullscreen() {
-    const list = getList(state.currentPage);
-    openFullscreenViewer(list, getAlbum(state.currentPage), this.index);
-  }
-  update() {
-    if (this.dragging) return;
-    this.y += this.fallSpeed;
-    this.swayPhase += this.swaySpeed;
-    this.x += Math.sin(this.swayPhase)*0.3 + (window._globalWind||0);
-    this.rotation += this.rotationSpeed;
-    this.scale += (this.targetScale*this.pinchScale - this.scale)*0.15;
-    if (this.y > window.innerHeight + 200) {
-      const idx = activePhotoIndices.indexOf(this.index);
-      if (idx >= 0) activePhotoIndices.splice(idx, 1);
-      this.y = -180 - Math.random()*280;
-      this.x = getDistributedX();
-      this.rotation = (Math.random()-0.5)*18;
-      this.fallSpeed = CONFIG.fallSpeedBase+Math.random()*CONFIG.fallSpeedRange;
-      this.collected = false;
-    }
-  }
-  render() {
-    if (!this.element) return;
-    this.element.style.transform = `translate(${this.x}px,${this.y}px) rotate(${this.rotation}deg) scale(${this.scale})`;
-  }
-  remove() { if (this.element) { this.element.remove(); this.element = null; } }
+  onDragStart(px,py){if(state.phase!=='falling')return;this.dragging=true;this.collected=true;this.element.classList.add('dragging');const r=this.element.getBoundingClientRect();this.dragOffsetX=px-r.left;this.dragOffsetY=py-r.top;this.targetScale=1.08}
+  onDragMove(px,py){if(!this.dragging)return;this.x=px-this.dragOffsetX;this.y=py-this.dragOffsetY;this.fallSpeed=0}
+  onDragEnd(){if(!this.dragging)return;this.dragging=false;this.element.classList.remove('dragging');this.targetScale=1;setTimeout(()=>{if(!this.dragging){this.fallSpeed=CONFIG.fallSpeedBase+Math.random()*CONFIG.fallSpeedRange;this.collected=false;const i=activePhotoIndices.indexOf(this.index);if(i>=0)activePhotoIndices.splice(i,1)}},5000)}
+  onPinchMove(t){const d=Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);if(this.lastTouchDist>0)this.pinchScale=Math.min(3,Math.max(0.5,this.pinchScale*(d/this.lastTouchDist)));this.lastTouchDist=d}
+  onPinchEnd(){this.lastTouchDist=0;const a=()=>{this.pinchScale+=(1-this.pinchScale)*0.2;if(Math.abs(this.pinchScale-1)>0.01)requestAnimationFrame(a);else this.pinchScale=1};requestAnimationFrame(a)}
+  openFullscreen(){const l=getList(state.currentPage);openFS(l,getAlbum(state.currentPage),this.index)}
+  update(){if(this.dragging)return;this.y+=this.fallSpeed;this.swayPhase+=this.swaySpeed;this.x+=Math.sin(this.swayPhase)*0.3+(window._globalWind||0);this.rotation+=this.rotationSpeed;this.scale+=(this.targetScale*this.pinchScale-this.scale)*0.15;if(this.y>window.innerHeight+200){const i=activePhotoIndices.indexOf(this.index);if(i>=0)activePhotoIndices.splice(i,1);this.y=-180-Math.random()*280;this.x=getDistributedX();this.rotation=(Math.random()-0.5)*18;this.fallSpeed=CONFIG.fallSpeedBase+Math.random()*CONFIG.fallSpeedRange;this.collected=false}}
+  render(){if(!this.element)return;this.element.style.transform=`translate(${this.x}px,${this.y}px) rotate(${this.rotation}deg) scale(${this.scale})`}
+  remove(){if(this.element){this.element.remove();this.element=null}}
 }
 
-// ==================== 照片管理 ====================
-let photoCards = [];
-function spawnPhotoCard() {
-  if (state.phase !== 'falling') return;
-  // 仅在第1页(合照)和第2页(独照)生成照片
-  if (state.currentPage < 1 || state.currentPage > 2) return;
-  const active = photoCards.filter(c => c.element !== null);
-  if (active.length >= CONFIG.maxFallingPhotos) return;
-  const list = getList(state.currentPage);
-  const available = [];
-  for (let i = 0; i < list.length; i++) {
-    if (!activePhotoIndices.includes(i)) available.push(i);
-  }
-  if (available.length === 0) return;
-  const ri = available[Math.floor(Math.random()*available.length)];
-  activePhotoIndices.push(ri);
-  photoCards.push(new PhotoCard(`./照片/${getAlbum(state.currentPage)}/${list[ri]}`, ri));
+let photoCards=[];
+function spawnPhotoCard(){if(state.phase!=='falling'||state.currentPage<1||state.currentPage>2)return;const a=photoCards.filter(c=>c.element!==null);if(a.length>=CONFIG.maxFallingPhotos)return;const l=getList(state.currentPage),av=[];for(let i=0;i<l.length;i++){if(!activePhotoIndices.includes(i))av.push(i)}if(av.length===0)return;const ri=av[Math.floor(Math.random()*av.length)];activePhotoIndices.push(ri);photoCards.push(new PhotoCard(`./照片/${getAlbum(state.currentPage)}/${l[ri]}`,ri))}
+function clearAllPhotoCards(){for(const c of photoCards)c.remove();photoCards=[];activePhotoIndices.length=0}
+
+// ==================== 页面管理（5页） ====================
+// 0=爱心 1=合照 2=独照 3=刮刮乐 4=留言板
+function updatePageUI(){
+  const p=state.currentPage;
+  pageDots.forEach((d,i)=>d.classList.toggle('active',i===p));
+  canvas.classList.toggle('hidden',p>=4);
+  photoContainer.classList.toggle('hidden',p<1||p>2);
+  infoPanel.style.opacity=(p>=1&&p<=2)?'1':'0';
+  if(p===0){heroText.style.opacity=''}else{heroText.style.opacity='0'}
+  if(p===3){scratchPage.classList.add('active');initScratchCard()}else{scratchPage.classList.remove('active')}
+  if(p===4){messagePage.classList.add('active');renderMessages()}else{messagePage.classList.remove('active')}
 }
-function clearAllPhotoCards() {
-  for (const c of photoCards) c.remove();
-  photoCards = [];
-  activePhotoIndices.length = 0;
+function showPageOverlay(msg){
+  pageOverlayMsg.textContent=msg;pageOverlay.style.opacity='1';
+  setTimeout(()=>{pageOverlay.style.opacity='0'},1800);
 }
-
-// 预加载页面照片（避免白色闪烁）
-function preloadPhotosForPage(page) {
-  const list = getList(page);
-  const album = getAlbum(page);
-  for (const fname of list) {
-    const img = new Image();
-    img.src = `./照片/${album}/${fname}`;
-  }
-}
-
-// ==================== 页面管理（4页） ====================
-// 第0页=爱心，第1页=合照，第2页=独照，第3页=留言板
-function updatePageUI() {
-  const p = state.currentPage;
-  pageDots.forEach((d,i) => d.classList.toggle('active', i === p));
-
-  // Canvas：第3页（留言板）隐藏
-  canvas.classList.toggle('hidden', p >= 3);
-  // 照片容器：仅在第1-2页显示
-  photoContainer.classList.toggle('hidden', p < 1 || p > 2);
-  // 信息面板：仅在第1-2页显示
-  infoPanel.style.opacity = (p >= 1 && p <= 2) ? '1' : '0';
-  // 开场文字：仅首页显示（移除inline让CSS class控制），其他页强制隐藏
-  if (p === 0) { heroText.style.opacity = ''; }
-  else { heroText.style.opacity = '0'; }
-  // 留言板
-  if (p === 3) { messagePage.classList.add('active'); renderMessages(); }
-  else { messagePage.classList.remove('active'); }
-}
-
-function switchToPage(newPage) {
-  if (state.currentPage === newPage || newPage < 0 || newPage > 3) return;
-
-  // 过渡动画：短暂闪烁
-  const overlay = document.getElementById('swipeOverlay');
-  let transAlpha = 0;
-  const transDuration = 250; // ms
-  const transStart = performance.now();
-  function transAnim(ts) {
-    const elapsed = ts - transStart;
-    const progress = Math.min(elapsed / transDuration, 1);
-    // 先增后减的alpha曲线
-    transAlpha = progress < 0.5 ? progress * 2 * 0.3 : (1 - progress) * 2 * 0.3;
-    overlay.style.opacity = transAlpha;
-    overlay.style.background = 'rgba(255,255,255,' + transAlpha + ')';
-    if (progress < 1) {
-      requestAnimationFrame(transAnim);
-    } else {
-      overlay.style.opacity = '0';
-      overlay.style.background = '';
-    }
-  }
-  requestAnimationFrame(transAnim);
-
-  state.currentPage = newPage;
-  clearAllPhotoCards();
-  updatePageUI();
-
-  // 第1-2页且动画已进入飘落阶段时触发照片生成
-  if (newPage >= 1 && newPage <= 2 && state.phase === 'falling') {
-    // 预加载当前页照片
-    preloadPhotosForPage(newPage);
-    photoFallStarted = true;
-    lastSpawnTime = 0;
-  } else if (newPage === 0) {
-    photoFallStarted = false;
-  }
+function switchToPage(np){
+  if(state.currentPage===np||np<0||np>4)return;
+  // 过渡动画
+  let ta=0;const td=250,ts=performance.now(),ov=document.getElementById('swipeOverlay');
+  function trans(t){const e=t-ts,p=Math.min(e/td,1);ta=p<0.5?p*2*0.3:(1-p)*2*0.3;ov.style.opacity=ta;ov.style.background='rgba(255,255,255,'+ta+')';if(p<1)requestAnimationFrame(trans);else{ov.style.opacity='0';ov.style.background=''}}
+  requestAnimationFrame(trans);
+  state.currentPage=np;clearAllPhotoCards();updatePageUI();
+  if(np===1)showPageOverlay('这是美好的我们');
+  if(np===2)showPageOverlay('这是美美的萌萌');
+  if(np>=1&&np<=2&&state.phase==='falling'){photoFallStarted=true;lastSpawnTime=0}
+  if(np===0)photoFallStarted=false;
 }
 
 // ==================== 全屏查看器 ====================
-let fsList = [], fsAlbum = '', fsIdx = 0;
-function openFullscreenViewer(list, album, idx) {
-  fsList = list; fsAlbum = album; fsIdx = idx; state.fullscreenIndex = idx;
-  showFS(); fullscreenViewer.classList.add('active');
-}
-function closeFS() { fullscreenViewer.classList.remove('active'); state.fullscreenIndex = -1; }
-function showFS() {
-  if (fsIdx < 0 || fsIdx >= fsList.length) return;
-  fullscreenImg.src = `./照片/${fsAlbum}/${fsList[fsIdx]}`;
-  fullscreenCounter.textContent = `${fsIdx+1} / ${fsList.length}`;
-}
-function navFS(d) { fsIdx = (fsIdx + d + fsList.length) % fsList.length; showFS(); }
-fullscreenViewer.querySelector('.closeBtn').addEventListener('click', closeFS);
-fullscreenViewer.querySelector('.prev').addEventListener('click', () => navFS(-1));
-fullscreenViewer.querySelector('.next').addEventListener('click', () => navFS(1));
-fullscreenViewer.addEventListener('click', e => { if (e.target === fullscreenViewer) closeFS(); });
-let fsSX = 0, fsSD = 0;
-fullscreenViewer.addEventListener('touchstart', e => { fsSX = e.touches[0].clientX; fsSD = 0; }, {passive:true});
-fullscreenViewer.addEventListener('touchmove', e => {
-  fsSD = e.touches[0].clientX - fsSX; fullscreenImg.style.transform = `translateX(${fsSD}px)`;
-}, {passive:true});
-fullscreenViewer.addEventListener('touchend', () => {
-  fullscreenImg.style.transform = ''; if (Math.abs(fsSD) > 80) navFS(fsSD > 0 ? -1 : 1);
-});
-document.addEventListener('keydown', e => {
-  if (state.fullscreenIndex < 0) return;
-  if (e.key === 'ArrowLeft') navFS(-1);
-  if (e.key === 'ArrowRight') navFS(1);
-  if (e.key === 'Escape') closeFS();
-});
+let fsL=[],fsA='',fsI=0;
+function openFS(l,a,i){fsL=l;fsA=a;fsI=i;state.fullscreenIndex=i;showFS();fullscreenViewer.classList.add('active')}
+function closeFS(){fullscreenViewer.classList.remove('active');state.fullscreenIndex=-1}
+function showFS(){if(fsI<0||fsI>=fsL.length)return;fullscreenImg.src=`./照片/${fsA}/${fsL[fsI]}`;fullscreenCounter.textContent=`${fsI+1}/${fsL.length}`}
+function navFS(d){fsI=(fsI+d+fsL.length)%fsL.length;showFS()}
+fullscreenViewer.querySelector('.closeBtn').addEventListener('click',closeFS);
+fullscreenViewer.querySelector('.prev').addEventListener('click',()=>navFS(-1));
+fullscreenViewer.querySelector('.next').addEventListener('click',()=>navFS(1));
+fullscreenViewer.addEventListener('click',e=>{if(e.target===fullscreenViewer)closeFS()});
+let fsSX=0,fsSD=0;
+fullscreenViewer.addEventListener('touchstart',e=>{fsSX=e.touches[0].clientX;fsSD=0},{passive:true});
+fullscreenViewer.addEventListener('touchmove',e=>{fsSD=e.touches[0].clientX-fsSX;fullscreenImg.style.transform=`translateX(${fsSD}px)`},{passive:true});
+fullscreenViewer.addEventListener('touchend',()=>{fullscreenImg.style.transform='';if(Math.abs(fsSD)>80)navFS(fsSD>0?-1:1)});
+document.addEventListener('keydown',e=>{if(state.fullscreenIndex<0)return;if(e.key==='ArrowLeft')navFS(-1);if(e.key==='ArrowRight')navFS(1);if(e.key==='Escape')closeFS()});
 
 // ==================== 全局拖拽 ====================
-document.addEventListener('mousemove', e => {
-  for (const c of photoCards) { if (c.dragging) c.onDragMove(e.clientX, e.clientY); }
-});
-document.addEventListener('mouseup', () => {
-  for (const c of photoCards) { if (c.dragging) c.onDragEnd(); }
-});
-document.addEventListener('touchmove', e => {
-  if (e.touches.length === 2) {
-    for (const c of photoCards) { if (c.lastTouchDist > 0) c.onPinchMove(e.touches); }
-    return;
-  }
-  for (const c of photoCards) {
-    if (c.dragging && e.touches.length === 1) {
-      e.preventDefault(); c.onDragMove(e.touches[0].clientX, e.touches[0].clientY);
-    }
-  }
-}, {passive: false});
-document.addEventListener('touchend', e => {
-  for (const c of photoCards) {
-    if (c.dragging && e.touches.length===0) c.onDragEnd();
-    if (c.lastTouchDist>0 && e.touches.length<2) c.onPinchEnd();
-  }
-});
+document.addEventListener('mousemove',e=>{for(const c of photoCards){if(c.dragging)c.onDragMove(e.clientX,e.clientY)}});
+document.addEventListener('mouseup',()=>{for(const c of photoCards){if(c.dragging)c.onDragEnd()}});
+document.addEventListener('touchmove',e=>{if(e.touches.length===2){for(const c of photoCards){if(c.lastTouchDist>0)c.onPinchMove(e.touches)}return}for(const c of photoCards){if(c.dragging&&e.touches.length===1){e.preventDefault();c.onDragMove(e.touches[0].clientX,e.touches[0].clientY)}}},{passive:false});
+document.addEventListener('touchend',e=>{for(const c of photoCards){if(c.dragging&&e.touches.length===0)c.onDragEnd();if(c.lastTouchDist>0&&e.touches.length<2)c.onPinchEnd()}});
 
-// ==================== 上下滑动切页系统 ====================
-let swipeSY = 0, swipeActive = false, swipeDY = 0;
-let swipeVelocity = 0, swipeLastY = 0, swipeLastT = 0;
-
-document.addEventListener('touchstart', e => {
-  if (state.fullscreenIndex >= 0) return;
-  // 如果在留言板页面且触摸在留言板内，不拦截
-  // 留言板页：仅当触摸输入框或按钮时不拦截，其他区域允许滑动
-  if (state.currentPage === 3 && e.target.closest('input,button')) return;
-  // 如果触摸在照片上且单指，交给照片拖拽
-  if (e.target.closest('.photo-card') && e.touches.length === 1) return;
-
-  swipeSY = e.touches[0].clientY;
-  swipeLastY = swipeSY;
-  swipeLastT = Date.now();
-  swipeActive = true;
-  swipeDY = 0;
-  swipeVelocity = 0;
-}, {passive: true});
-
-document.addEventListener('touchmove', e => {
-  if (!swipeActive) return;
-  const cy = e.touches[0].clientY;
-  swipeDY = cy - swipeSY;
-  const now = Date.now();
-  const dt = now - swipeLastT;
-  if (dt > 0) swipeVelocity = (cy - swipeLastY) / dt;
-  swipeLastY = cy;
-  swipeLastT = now;
-
-  // 视觉反馈：根据滑动距离调整透明度
-  if (Math.abs(swipeDY) > 15) {
-    const progress = Math.min(Math.abs(swipeDY) / (window.innerHeight * 0.4), 1);
-    document.getElementById('swipeOverlay').style.opacity = progress * 0.15;
-  }
-}, {passive: true});
-
-document.addEventListener('touchend', () => {
-  if (!swipeActive) return;
-  swipeActive = false;
-  document.getElementById('swipeOverlay').style.opacity = '0';
-
-  const threshold = window.innerHeight * 0.2;
-  const velocityThreshold = 0.4; // px/ms 快速滑动阈值
-
-  // 判断是否切换：距离够大，或者速度够快
-  const shouldSwitch = Math.abs(swipeDY) > threshold || Math.abs(swipeVelocity) > velocityThreshold;
-
-  if (shouldSwitch) {
-    const goNext = swipeDY < 0 || swipeVelocity < -velocityThreshold; // 向上滑=下一页
-    if (goNext && state.currentPage < 3) {
-      switchToPage(state.currentPage + 1);
-    } else if (!goNext && state.currentPage > 0) {
-      switchToPage(state.currentPage - 1);
-    }
-  }
-  swipeDY = 0;
-  swipeVelocity = 0;
-});
-
-// 鼠标滚轮（桌面端）
-let wheelAccum = 0;
-document.addEventListener('wheel', e => {
-  if (state.fullscreenIndex >= 0) return;
-  if (state.currentPage === 3 && e.target.closest('input,button')) return;
-  if (e.target.closest('.photo-card')) return;
-  wheelAccum += e.deltaY;
-  if (Math.abs(wheelAccum) > 80) {
-    if (wheelAccum > 0 && state.currentPage < 3) {
-      switchToPage(state.currentPage + 1);
-    } else if (wheelAccum < 0 && state.currentPage > 0) {
-      switchToPage(state.currentPage - 1);
-    }
-    wheelAccum = 0;
-  }
-}, {passive: true});
+// ==================== 上下滑动 ====================
+let swipeSY=0,swipeActive=false,swipeDY=0,swipeVelocity=0,swipeLastY=0;
+document.addEventListener('touchstart',e=>{if(state.fullscreenIndex>=0)return;if(state.currentPage===4&&e.target.closest('input,button'))return;if(state.currentPage===3&&e.target.closest('canvas'))return;if(e.target.closest('.photo-card')&&e.touches.length===1)return;swipeSY=e.touches[0].clientY;swipeLastY=swipeSY;swipeActive=true;swipeDY=0;swipeVelocity=0},{passive:true});
+document.addEventListener('touchmove',e=>{if(!swipeActive)return;const cy=e.touches[0].clientY;swipeDY=cy-swipeSY;const n=Date.now(),dt=n-(swipeLastT||n);if(dt>0)swipeVelocity=(cy-swipeLastY)/dt;swipeLastY=cy;swipeLastT=n;if(Math.abs(swipeDY)>15){const p=Math.min(Math.abs(swipeDY)/(window.innerHeight*0.4),1);document.getElementById('swipeOverlay').style.opacity=p*0.15}},{passive:true});
+let swipeLastT=0;
+document.addEventListener('touchend',()=>{if(!swipeActive)return;swipeActive=false;document.getElementById('swipeOverlay').style.opacity='0';const th=window.innerHeight*0.2,vt=0.4;const s=Math.abs(swipeDY)>th||Math.abs(swipeVelocity)>vt;if(s){const n=swipeDY<0||swipeVelocity<-vt;if(n&&state.currentPage<4)switchToPage(state.currentPage+1);else if(!n&&state.currentPage>0)switchToPage(state.currentPage-1)}swipeDY=0;swipeVelocity=0});
+let wa=0;
+document.addEventListener('wheel',e=>{if(state.fullscreenIndex>=0)return;if(state.currentPage===4&&e.target.closest('input,button'))return;if(e.target.closest('.photo-card'))return;wa+=e.deltaY;if(Math.abs(wa)>80){if(wa>0&&state.currentPage<4)switchToPage(state.currentPage+1);else if(wa<0&&state.currentPage>0)switchToPage(state.currentPage-1);wa=0}},{passive:true});
 
 // ==================== 留言板 ====================
-const STICKY_COLORS = ['#FFD1DC','#FFFACD','#B5D8EB','#C1E1C1','#E8D5E0','#FFE4C4','#D5E8D4','#FADADD','#DAE8FC','#FFF2CC'];
-function loadMsgs() { try { return JSON.parse(localStorage.getItem('bd_msgs_v2')||'[]'); } catch{return[];} }
-function saveMsgs(m) { try { localStorage.setItem('bd_msgs_v2',JSON.stringify(m)); } catch{} }
-function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-function renderMessages() {
-  const msgs = loadMsgs(); notesContainer.innerHTML = '';
-  for (const m of [...msgs].reverse()) {
-    const n = document.createElement('div'); n.className='sticky-note';
-    n.style.background=m.color; n.style.transform=`rotate(${m.rotation}deg)`;
-    n.innerHTML=`<div class="noteAuthor">${esc(m.nickname)}</div><div>${esc(m.content)}</div><div class="noteTime">${m.time}</div>`;
-    notesContainer.appendChild(n);
-  }
-}
-function addMsg() {
-  const nn = msgNickname.value.trim(), ct = msgContentInput.value.trim();
-  if (!nn||!ct) return;
-  const now = new Date();
-  const ts = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const msgs = loadMsgs();
-  msgs.push({nickname:nn,content:ct,time:ts,color:STICKY_COLORS[Math.floor(Math.random()*STICKY_COLORS.length)],rotation:(Math.random()-0.5)*8});
-  saveMsgs(msgs);
-  msgNickname.value=''; msgContentInput.value='';
-  renderMessages();
-}
-msgSend.addEventListener('click', addMsg);
-msgContentInput.addEventListener('keydown', e => { if(e.key==='Enter') addMsg(); });
+const SC=['#FFD1DC','#FFFACD','#B5D8EB','#C1E1C1','#E8D5E0','#FFE4C4','#D5E8D4','#FADADD','#DAE8FC','#FFF2CC'];
+function lm(){try{return JSON.parse(localStorage.getItem('bd_v3')||'[]')}catch{return[]}}
+function sm(m){try{localStorage.setItem('bd_v3',JSON.stringify(m))}catch{}}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function renderMessages(){const m=lm();notesContainer.innerHTML='';for(const x of[...m].reverse()){const n=document.createElement('div');n.className='sticky-note';n.style.background=x.color;n.style.transform=`rotate(${x.rotation}deg)`;n.innerHTML=`<div class="noteAuthor">${esc(x.nickname)}</div><div>${esc(x.content)}</div><div class="noteTime">${x.time}</div>`;notesContainer.appendChild(n)}}
+function addMsg(){const nn=msgNickname.value.trim(),ct=msgContentInput.value.trim();if(!nn||!ct)return;const now=new Date(),ts=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;const m=lm();m.push({nickname:nn,content:ct,time:ts,color:SC[Math.floor(Math.random()*SC.length)],rotation:(Math.random()-0.5)*8});sm(m);msgNickname.value='';msgContentInput.value='';renderMessages()}
+msgSend.addEventListener('click',addMsg);msgContentInput.addEventListener('keydown',e=>{if(e.key==='Enter')addMsg()});
 
 // ==================== 时光卡片 ====================
-function updateDays() {
-  const d = Math.floor((Date.now()-CONFIG.startDate.getTime())/86400000);
-  const cur = parseInt(daysNum.textContent)||0;
-  if (cur!==d) {
-    const st=performance.now();
-    function t(n) {
-      const p=Math.min((n-st)/1200,1), e=1-Math.pow(1-p,3);
-      daysNum.textContent=Math.floor(cur+(d-cur)*e);
-      if(p<1) requestAnimationFrame(t);
-    }
-    requestAnimationFrame(t);
-  }
+function updateDays(){const d=Math.floor((Date.now()-CONFIG.startDate.getTime())/86400000),cur=parseInt(daysNum.textContent)||0;if(cur!==d){const st=performance.now();function t(n){const p=Math.min((n-st)/1200,1),e=1-Math.pow(1-p,3);daysNum.textContent=Math.floor(cur+(d-cur)*e);if(p<1)requestAnimationFrame(t)}requestAnimationFrame(t)}}
+
+// ==================== 生日歌（AudioContext 调度，更连贯） ====================
+let audioCtx=null,musicSchedId=null,musicNoteIdx=0,musicPhase='intro';
+const NF={C2:65.41,D2:73.42,E2:82.41,F2:87.31,G2:98,A2:110,B2:123.47,C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196,A3:220,B3:246.94,C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,B4:493.88,C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99};
+const CM={C:['C3','E3','G3','C4'],G:['G2','B2','D3','G3'],F:['F2','A2','C3','F3'],Am:['A2','C3','E3','A3'],Dm:['D3','F3','A3','D4']};
+const introM=[{n:'C4',d:0.8,ch:['E4','G4']},{n:null,d:0.2},{n:'G3',d:0.7,ch:['D4','B4']},{n:null,d:0.2},{n:'A3',d:0.7,ch:['C4','A4']},{n:null,d:0.2},{n:'F3',d:0.8,ch:['C4','A4']},{n:null,d:0.3},{n:'C4',d:0.4,ch:['E4']},{n:'D4',d:0.25,ch:['F4']},{n:'E4',d:0.25,ch:['G4']},{n:'F4',d:0.25,ch:['A4']},{n:'G4',d:0.5},{n:null,d:0.8}];
+const songM=[{n:'G4',d:0.45},{n:'G4',d:0.2},{n:'A4',d:0.5},{n:'G4',d:0.5},{n:'C5',d:0.5},{n:'B4',d:0.8},{n:null,d:0.25},{n:'G4',d:0.45},{n:'G4',d:0.2},{n:'A4',d:0.5},{n:'G4',d:0.5},{n:'D5',d:0.5},{n:'C5',d:0.8},{n:null,d:0.25},{n:'G4',d:0.45},{n:'G4',d:0.2},{n:'G5',d:0.5},{n:'E5',d:0.5},{n:'C5',d:0.4},{n:'B4',d:0.3},{n:'A4',d:0.3},{n:null,d:0.2},{n:'F5',d:0.45},{n:'F5',d:0.2},{n:'E5',d:0.5},{n:'C5',d:0.5},{n:'D5',d:0.6},{n:'C5',d:1.5},{n:null,d:2}];
+function gCA(i){const p=['C','G','Am','F','C','G','C','C','F','F','C','Am','Dm','G','C','C'];return p[Math.floor(i/8)%p.length]||'C'}
+function playNoteHarmony(f,d,st,ct){
+  if(!audioCtx)return;
+  const om=audioCtx.createOscillator(),gm=audioCtx.createGain();om.type='triangle';om.frequency.value=f;gm.gain.setValueAtTime(0,st);gm.gain.linearRampToValueAtTime(0.16,st+0.03);gm.gain.setValueAtTime(0.14,st+d*0.3);gm.gain.linearRampToValueAtTime(0.08,st+d*0.6);gm.gain.linearRampToValueAtTime(0,st+d);om.connect(gm);gm.connect(audioCtx.destination);om.start(st);om.stop(st+d+0.05);
+  if(ct&&CM[ct]){for(const cn of CM[ct]){if(!NF[cn])continue;const oc=audioCtx.createOscillator(),gc=audioCtx.createGain();oc.type='sine';oc.frequency.value=NF[cn];gc.gain.setValueAtTime(0,st);gc.gain.linearRampToValueAtTime(0.025,st+0.03);gc.gain.linearRampToValueAtTime(0.015,st+d*0.5);gc.gain.linearRampToValueAtTime(0,st+d);oc.connect(gc);gc.connect(audioCtx.destination);oc.start(st);oc.stop(st+d+0.05)}}
+  if(d>0.3){const ob=audioCtx.createOscillator(),gb=audioCtx.createGain();ob.type='sine';ob.frequency.value=f*3;gb.gain.setValueAtTime(0,st);gb.gain.linearRampToValueAtTime(0.015,st+0.02);gb.gain.exponentialRampToValueAtTime(0.001,st+d*0.4);ob.connect(gb);gb.connect(audioCtx.destination);ob.start(st);ob.stop(st+d*0.4)}
 }
 
-// ==================== 生日歌 ====================
-let audioCtx=null,musicInterval=null,musicNoteIndex=0,musicPhase='intro';
-const NF={
-  'C2':65.41,'D2':73.42,'E2':82.41,'F2':87.31,'G2':98,'A2':110,'B2':123.47,
-  'C3':130.81,'D3':146.83,'E3':164.81,'F3':174.61,'G3':196,'A3':220,'B3':246.94,
-  'C4':261.63,'D4':293.66,'E4':329.63,'F4':349.23,'G4':392,'A4':440,'B4':493.88,
-  'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,'G5':783.99,
-};
-const CM={C:['C3','E3','G3','C4'],G:['G2','B2','D3','G3'],F:['F2','A2','C3','F3'],Am:['A2','C3','E3','A3'],Dm:['D3','F3','A3','D4']};
-const introM=[
-  {n:'C4',d:1.2,ch:['E4','G4','C5']},{n:null,d:0.3},{n:'G3',d:1,ch:['D4','G4','B4']},{n:null,d:0.3},
-  {n:'A3',d:1,ch:['C4','E4','A4']},{n:null,d:0.3},{n:'F3',d:1.2,ch:['C4','F4','A4']},{n:null,d:0.5},
-  {n:'C4',d:0.6,ch:['E4','G4']},{n:'D4',d:0.3,ch:['F4','A4']},{n:'E4',d:0.3,ch:['G4','C5']},{n:'F4',d:0.3,ch:['A4','C5']},{n:'G4',d:0.6},{n:null,d:1},
-];
-const songM=[
-  {n:'G4',d:0.22},{n:'G4',d:0.22},{n:'A4',d:0.45},{n:'G4',d:0.45},{n:'C5',d:0.45},{n:'B4',d:0.9},{n:null,d:0.3},
-  {n:'G4',d:0.22},{n:'G4',d:0.22},{n:'A4',d:0.45},{n:'G4',d:0.45},{n:'D5',d:0.45},{n:'C5',d:0.9},{n:null,d:0.3},
-  {n:'G4',d:0.22},{n:'G4',d:0.22},{n:'G5',d:0.45},{n:'E5',d:0.45},{n:'C5',d:0.45},{n:'B4',d:0.35},{n:'A4',d:0.25},{n:null,d:0.2},
-  {n:'F5',d:0.22},{n:'F5',d:0.22},{n:'E5',d:0.45},{n:'C5',d:0.45},{n:'D5',d:0.9},{n:'C5',d:1.8},{n:null,d:2.5},
-];
-function gCA(i){const p=['C','G','Am','F','C','G','C','C','F','F','C','Am','Dm','G','C','C'];return p[Math.floor(i/8)%p.length]||'C';}
-function pNWH(f,d,st,ct){
-  if(!audioCtx)return;
-  const om=audioCtx.createOscillator(),gm=audioCtx.createGain();
-  om.type='triangle';om.frequency.value=f;
-  gm.gain.setValueAtTime(0,st);gm.gain.linearRampToValueAtTime(0.16,st+0.04);
-  gm.gain.linearRampToValueAtTime(0.1,st+d*0.5);gm.gain.linearRampToValueAtTime(0,st+d);
-  om.connect(gm);gm.connect(audioCtx.destination);om.start(st);om.stop(st+d+0.1);
-  if(ct&&CM[ct]){for(const cn of CM[ct]){if(!NF[cn])continue;
-    const oc=audioCtx.createOscillator(),gc=audioCtx.createGain();
-    oc.type='sine';oc.frequency.value=NF[cn];
-    gc.gain.setValueAtTime(0,st);gc.gain.linearRampToValueAtTime(0.03,st+0.03);
-    gc.gain.linearRampToValueAtTime(0.018,st+d*0.6);gc.gain.linearRampToValueAtTime(0,st+d);
-    oc.connect(gc);gc.connect(audioCtx.destination);oc.start(st);oc.stop(st+d+0.1);
-  }}
-  if(d>0.3){const ob=audioCtx.createOscillator(),gb=audioCtx.createGain();
-    ob.type='sine';ob.frequency.value=f*3;
-    gb.gain.setValueAtTime(0,st);gb.gain.linearRampToValueAtTime(0.02,st+0.02);
-    gb.gain.exponentialRampToValueAtTime(0.001,st+d*0.5);
-    ob.connect(gb);gb.connect(audioCtx.destination);ob.start(st);ob.stop(st+d*0.5);
+// 批量调度音符（而非setTimeout逐个播放）
+function scheduleMusicBlock(fromTime, count) {
+  if (!state.musicPlaying || !audioCtx) return;
+  let t = fromTime;
+  for (let i = 0; i < count; i++) {
+    const mel = musicPhase === 'intro' ? introM : songM;
+    const idx = musicNoteIdx % mel.length;
+    const nd = mel[idx];
+    if (nd.n && NF[nd.n]) {
+      const ct = musicPhase === 'song' ? gCA(idx) : null;
+      playNoteHarmony(NF[nd.n], nd.d, t, ct);
+      if (nd.ch && musicPhase === 'intro') {
+        for (const cn of nd.ch) {
+          if (NF[cn]) playNoteHarmony(NF[cn], nd.d, t, null);
+        }
+      }
+    }
+    t += nd.d;
+    musicNoteIdx++;
+    if (musicPhase === 'intro' && musicNoteIdx >= introM.length) { musicPhase = 'song'; musicNoteIdx = 0; }
+    else if (musicPhase === 'song' && musicNoteIdx >= songM.length) { musicNoteIdx = 0; }
   }
+  // 调度下一次
+  const nextTime = t;
+  const delayMs = Math.max((nextTime - audioCtx.currentTime) * 1000 - 200, 100);
+  musicSchedId = setTimeout(() => scheduleMusicBlock(audioCtx.currentTime + 0.3, 8), delayMs);
 }
-function pMS(){
-  if(!state.musicPlaying||!audioCtx)return;
-  const mel=musicPhase==='intro'?introM:songM;
-  const idx=musicNoteIndex%mel.length,nd=mel[idx],now=audioCtx.currentTime;
-  if(nd.n&&NF[nd.n]){
-    pNWH(NF[nd.n],nd.d,now,musicPhase==='song'?gCA(idx):null);
-    if(nd.ch&&musicPhase==='intro'){for(const cn of nd.ch){if(!NF[cn])continue;
-      const oc=audioCtx.createOscillator(),gc=audioCtx.createGain();
-      oc.type='sine';oc.frequency.value=NF[cn];
-      gc.gain.setValueAtTime(0,now);gc.gain.linearRampToValueAtTime(0.05,now+0.04);
-      gc.gain.linearRampToValueAtTime(0.02,now+nd.d*0.7);gc.gain.linearRampToValueAtTime(0,now+nd.d);
-      oc.connect(gc);gc.connect(audioCtx.destination);oc.start(now);oc.stop(now+nd.d+0.1);
-    }}
-  }
-  musicNoteIndex++;
-  if(musicPhase==='intro'&&musicNoteIndex>=introM.length){musicPhase='song';musicNoteIndex=0;}
-  else if(musicPhase==='song'&&musicNoteIndex>=songM.length){musicNoteIndex=0;}
-  musicInterval=setTimeout(pMS,nd.d*1000+50);
-}
-function iA(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
-function sM(){iA();state.musicPlaying=true;musicBtn.classList.add('playing');musicBtn.classList.remove('paused');musicBtn.textContent='🎵';musicNoteIndex=0;musicPhase='intro';pMS();}
-function stopM(){state.musicPlaying=false;musicBtn.classList.remove('playing');musicBtn.classList.add('paused');musicBtn.textContent='🔇';if(musicInterval){clearTimeout(musicInterval);musicInterval=null;}}
-musicBtn.addEventListener('click',()=>{state.musicPlaying?stopM():sM();});
+
+function iA(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume()}
+function sM(){iA();state.musicPlaying=true;musicBtn.classList.add('playing');musicBtn.classList.remove('paused');musicBtn.textContent='🎵';musicNoteIdx=0;musicPhase='intro';if(musicSchedId)clearTimeout(musicSchedId);scheduleMusicBlock(audioCtx.currentTime+0.1,8)}
+function stopM(){state.musicPlaying=false;musicBtn.classList.remove('playing');musicBtn.classList.add('paused');musicBtn.textContent='🔇';if(musicSchedId){clearTimeout(musicSchedId);musicSchedId=null}}
+musicBtn.addEventListener('click',()=>{state.musicPlaying?stopM():sM()});
 let aI=false;
-document.addEventListener('click',function o(){
-  if(aI)return;iA();
-  if(audioCtx&&audioCtx.state==='suspended'){audioCtx.resume().then(()=>{if(state.musicPlaying&&!musicInterval)sM();});}
-  else if(audioCtx&&audioCtx.state==='running'){if(state.musicPlaying&&!musicInterval)sM();}
-  aI=true;
-});
+document.addEventListener('click',function o(){if(aI)return;iA();if(audioCtx&&audioCtx.state==='suspended'){audioCtx.resume().then(()=>{if(state.musicPlaying&&!musicSchedId)sM()})}else if(audioCtx&&audioCtx.state==='running'){if(state.musicPlaying&&!musicSchedId)sM()}aI=true});
 
 // ==================== 主渲染循环 ====================
-let hCX=window.innerWidth/2,hCY=window.innerHeight*0.45;
-let globalTime=0,lastSpawnTime=0,photoFallStarted=false,animStartTs=null;
+let hCX=window.innerWidth/2,hCY=window.innerHeight*0.45,globalTime=0,lastSpawnTime=0,photoFallStarted=false,animStartTs=null;
 
 function animate(ts){
   requestAnimationFrame(animate);
-  try {
+  try{
   if(animStartTs===null)animStartTs=ts;
-  const rTs=ts-animStartTs;
-  globalTime=rTs*0.001;
+  const rTs=ts-animStartTs;globalTime=rTs*0.001;
   hCX=window.innerWidth/2;hCY=window.innerHeight*0.45;
   const wind=Math.sin(globalTime*0.3)*0.15+Math.sin(globalTime*0.7)*0.08;
   window._globalWind=wind;
@@ -1093,86 +522,72 @@ function animate(ts){
   if(state.phase==='heart'&&rTs>CONFIG.heartDuration){
     state.phase='bursting';state.burstStart=rTs;
     const sc=CONFIG.heartScale*Math.min(window.innerWidth,window.innerHeight)*0.028;
-    for(const p of particles){const pos=p.getHeartPos(sc,globalTime);p.initPetal(pos,hCX,hCY);p.petalVX*=2.5;p.petalVY*=2.5;}
+    for(const p of particles){const pos=p.getHeartPos(sc,globalTime);p.initPetal(pos,hCX,hCY);p.petalVX*=2.5;p.petalVY*=2.5}
     heroText.classList.add('visible');
   }
   if(state.phase==='bursting'&&(rTs-state.burstStart)>CONFIG.burstDuration){
     state.phase='falling';photoFallStarted=true;lastSpawnTime=0;
-    for(const p of particles){p.petalVX*=0.3;p.petalVY*=0.3;}
-    // 首页爱心爆开后1.5秒自动滑到合照页
-    if(state.currentPage===0){
-      setTimeout(()=>{if(state.currentPage===0)switchToPage(1);},1500);
-    } else {
-      // 非首页进入falling时立即生成照片
-      lastSpawnTime=0;
-    }
+    for(const p of particles){p.petalVX*=0.3;p.petalVY*=0.3}
+    if(state.currentPage===0){setTimeout(()=>{if(state.currentPage===0)switchToPage(1)},1500)}
+    else{lastSpawnTime=0}
   }
 
-  // 萤火虫
-  for(const s of sparkles){s.update();s.draw(ctx,globalTime);}
+  for(const s of sparkles){s.update();s.draw(ctx,globalTime)}
 
-  // 爱心
   if(state.phase==='heart'){
-    const el=rTs*0.001,sc=CONFIG.heartScale*Math.min(window.innerWidth,window.innerHeight)*0.028;
-    const fi=Math.min(el/0.8,1);
-    for(const p of particles){
-      const pos=p.getHeartPos(sc,el);
-      p.rotation+=p.rotationSpeed;p.updateTrail(hCX+pos.x,hCY+pos.y);
-      p.drawHeart(ctx,hCX+pos.x,hCY+pos.y,fi*0.9);
-    }
-    const ga=0.15+Math.sin(el*2.5)*0.05;
-    const g=ctx.createRadialGradient(hCX,hCY-5,0,hCX,hCY,sc*8);
+    const el=rTs*0.001,sc=CONFIG.heartScale*Math.min(window.innerWidth,window.innerHeight)*0.028,fi=Math.min(el/0.8,1);
+    for(const p of particles){const pos=p.getHeartPos(sc,el);p.rotation+=p.rotationSpeed;p.updateTrail(hCX+pos.x,hCY+pos.y);p.drawHeart(ctx,hCX+pos.x,hCY+pos.y,fi*0.9)}
+    const ga=0.15+Math.sin(el*2.5)*0.05,g=ctx.createRadialGradient(hCX,hCY-5,0,hCX,hCY,sc*8);
     g.addColorStop(0,`rgba(255,150,180,${ga*2})`);g.addColorStop(1,'rgba(255,150,180,0)');
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(hCX,hCY-5,sc*8,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(hCX,hCY-5,sc*8,0,Math.PI*2);ctx.fill()
+  }
+  if((state.phase==='bursting'||state.phase==='falling')&&state.currentPage<4){
+    const be=(rTs-(state.burstStart||0))*0.001,fi=Math.min(be/0.4,1),gv=state.phase==='bursting'?0.008:0.03;
+    for(const p of particles){p.updatePetal(gv,wind);p.drawPetal(ctx,p.petalX,p.petalY,fi*0.85)}
   }
 
-  // 花瓣（第0-2页显示，第3页留言板不显示）
-  if((state.phase==='bursting'||state.phase==='falling')&&state.currentPage<3){
-    const be=(rTs-(state.burstStart||0))*0.001,fi=Math.min(be/0.4,1);
-    const gv=state.phase==='bursting'?0.008:0.03;
-    for(const p of particles){p.updatePetal(gv,wind);p.drawPetal(ctx,p.petalX,p.petalY,fi*0.85);}
-  }
+  try{
+    if(state.currentPage===0&&heroText.classList.contains('visible')){cakeAlpha+=(1-cakeAlpha)*0.03}
+    else if(state.currentPage!==0){cakeAlpha+=(0-cakeAlpha)*0.1}
+    if(cakeAlpha>0.005)drawCake(ctx,globalTime,Math.min(cakeAlpha,0.9))
+  }catch(e){}
 
-  // ---- 蛋糕（首页hero文字出现后渐显，画在最上层） ----
-  try {
-    if (state.currentPage === 0 && heroText.classList.contains('visible')) {
-      cakeAlpha += (1 - cakeAlpha) * 0.03;
-    } else if (state.currentPage !== 0) {
-      cakeAlpha += (0 - cakeAlpha) * 0.1;
-    }
-    if (cakeAlpha > 0.005) drawCake(ctx, globalTime, Math.min(cakeAlpha, 0.9));
-  } catch(e) { /* 蛋糕绘制失败不影响主循环 */ }
-
-  // 照片生成（仅第1-2页）
   if(photoFallStarted&&state.phase==='falling'&&state.currentPage>=1&&state.currentPage<=2){
-    if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*450);lastSpawnTime=rTs;}
-    else if(rTs-lastSpawnTime>CONFIG.photoFallInterval){spawnPhotoCard();lastSpawnTime=rTs;}
+    if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*450);lastSpawnTime=rTs}
+    else if(rTs-lastSpawnTime>CONFIG.photoFallInterval){spawnPhotoCard();lastSpawnTime=rTs}
   }
 
-  // 更新照片
   let fc=0,cn=0;
-  for(const c of photoCards){if(!c.element)continue;c.update();c.render();if(!c.dragging&&c.fallSpeed>0)fc++;if(c.collected)cn++;}
+  for(const c of photoCards){if(!c.element)continue;c.update();c.render();if(!c.dragging&&c.fallSpeed>0)fc++;if(c.collected)cn++}
   photoCards=photoCards.filter(c=>c.element!==null);
   infoFalling.textContent=fc;infoCollected.textContent=cn;state.collectedCount=cn;
 
-  // 音乐
-  if(state.musicPlaying&&audioCtx&&audioCtx.state==='running'&&!musicInterval){musicNoteIndex=0;pMS();}
-  } catch(e) { /* 静默恢复，避免一帧错误影响整体 */ }
+  if(state.musicPlaying&&audioCtx&&audioCtx.state==='running'&&!musicSchedId){musicNoteIdx=0;scheduleMusicBlock(audioCtx.currentTime+0.1,8)}
+  }catch(e){}
 }
 
 // ==================== 初始化 ====================
+function preloadAllPhotos(){
+  // 预加载所有照片到浏览器缓存
+  for(const album of ['合照','独照']){
+    const list = album==='合照'?PHOTO_PATHS.together:PHOTO_PATHS.solo;
+    for(const f of list){
+      const img = document.createElement('img');
+      img.src = `./照片/${album}/${f}`;
+      preloadContainer.appendChild(img);
+    }
+  }
+}
 function init(){
+  preloadAllPhotos();
   updateDays();renderMessages();
   state.musicPlaying=true;musicBtn.classList.add('playing');musicBtn.classList.remove('paused');musicBtn.textContent='🎵';
   updatePageUI();
-  // 预加载首页和合照页照片（首页爆开后会直接到合照页）
-  preloadPhotosForPage(1);
-  preloadPhotosForPage(2);
   requestAnimationFrame(animate);
 }
 window.addEventListener('DOMContentLoaded',init);
 setInterval(updateDays,60000);
-window.addEventListener('resize',()=>{resizeCanvas();for(const s of sparkles){s.x=Math.min(s.x,window.innerWidth);s.y=Math.min(s.y,window.innerHeight);}});
+window.addEventListener('resize',()=>{resizeCanvas();for(const s of sparkles){s.x=Math.min(s.x,window.innerWidth);s.y=Math.min(s.y,window.innerHeight)}});
 </script>
 </body>
 </html>
