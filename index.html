@@ -23,8 +23,9 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
 .photo-card:hover,.photo-card.touched{z-index:99}
 .photo-card .polaroid{background:#fffdf7;padding:7px 7px 24px 7px;border-radius:3px;box-shadow:2px 3px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.08);width:140px}
 .photo-card.dragging .polaroid,.photo-card:hover .polaroid,.photo-card.touched .polaroid{box-shadow:4px 8px 28px rgba(0,0,0,0.25),0 4px 12px rgba(0,0,0,0.12)}
-.photo-card .polaroid img{display:block;width:126px;height:126px;object-fit:cover;border-radius:1px;pointer-events:none;background:#f0d8d8;transition:opacity 0.25s ease}
-.photo-card .polaroid img.loaded{opacity:1}
+.photo-card .polaroid img{display:block;width:126px;height:126px;object-fit:cover;border-radius:1px;pointer-events:none;background:linear-gradient(110deg,#f0d8d8 30%,#f8e8e8 50%,#f0d8d8 70%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite;transition:opacity 0.35s ease}
+.photo-card .polaroid img.loaded{animation:none;background:#f0d8d8;opacity:1}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .photo-card .polaroid::after{content:'❤';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);font-size:12px;color:#e91e63;opacity:0.6}
 
 /* 页面指示点 */
@@ -381,7 +382,7 @@ class PhotoCard{
 
 let photoCards=[];
 function spawnPhotoCard(){if(state.phase!=='falling'||state.currentPage<1||state.currentPage>2)return;const a=photoCards.filter(c=>c.element!==null);if(a.length>=CONFIG.maxFallingPhotos)return;const l=getList(state.currentPage),av=[];for(let i=0;i<l.length;i++){if(!activePhotoIndices.includes(i))av.push(i)}if(av.length===0)return;const ri=av[Math.floor(Math.random()*av.length)];activePhotoIndices.push(ri);photoCards.push(new PhotoCard(`./照片/${getAlbum(state.currentPage)}/${l[ri]}`,ri))}
-function clearAllPhotoCards(){for(const c of photoCards)c.remove();photoCards=[];activePhotoIndices.length=0}
+function clearAllPhotoCards(){for(const c of photoCards){if(c.element){c.element.style.transition='opacity 0.35s ease';c.element.style.opacity='0'}}setTimeout(()=>{for(const c of photoCards)c.remove();photoCards=[];activePhotoIndices.length=0},400)}
 
 // ==================== 页面管理（5页） ====================
 // 0=爱心 1=合照 2=独照 3=刮刮乐 4=留言板
@@ -568,13 +569,19 @@ function animate(ts){
 
 // ==================== 初始化 ====================
 function preloadAllPhotos(){
-  // 预加载所有照片到浏览器缓存
+  // 使用 link[rel=preload] 确保浏览器高优先级预加载所有照片
   for(const album of ['合照','独照']){
     const list = album==='合照'?PHOTO_PATHS.together:PHOTO_PATHS.solo;
     for(const f of list){
-      const img = document.createElement('img');
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = `./照片/${album}/${f}`;
+      link.fetchPriority = 'high';
+      document.head.appendChild(link);
+      // 同时用 Image 对象加载确保兼容
+      const img = new Image();
       img.src = `./照片/${album}/${f}`;
-      preloadContainer.appendChild(img);
     }
   }
 }
