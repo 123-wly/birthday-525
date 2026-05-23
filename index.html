@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>生日快乐</title>
 <style>
-/* ============ 全局重置 ============ */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{
   width:100%;height:100%;overflow:hidden;
@@ -14,18 +13,22 @@ html,body{
   background-attachment:fixed;
   -webkit-tap-highlight-color:transparent;
   -webkit-user-select:none;user-select:none;
-  touch-action:pan-y; /* 允许垂直滑动，JS拦截水平滑动 */
+  touch-action:none; /* JS 接管全部触摸 */
 }
 
-/* ============ Canvas 粒子层 ============ */
+/* ============ Canvas ============ */
 #particleCanvas{
   position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;
+  transition:opacity 0.5s ease;
 }
+#particleCanvas.hidden{opacity:0}
 
 /* ============ 照片容器 ============ */
 #photoContainer{
   position:fixed;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;
+  transition:opacity 0.4s ease;
 }
+#photoContainer.hidden{opacity:0}
 
 /* ============ 拍立得相纸 ============ */
 .photo-card{
@@ -47,7 +50,10 @@ html,body{
 }
 .photo-card .polaroid img{
   display:block;width:126px;height:126px;object-fit:cover;border-radius:1px;pointer-events:none;
+  background:#f0e0e0; /* 加载前的占位色 */
+  transition:opacity 0.3s ease;
 }
+.photo-card .polaroid img.loaded{opacity:1}
 .photo-card .polaroid::after{
   content:'❤';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
   font-size:12px;color:#e91e63;opacity:0.6;
@@ -55,14 +61,15 @@ html,body{
 
 /* ============ 页面指示点 ============ */
 #pageDots{
-  position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
-  z-index:30;display:flex;gap:10px;
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  z-index:30;display:flex;flex-direction:column;gap:10px;
+  transition:opacity 0.5s ease;
 }
 #pageDots .dot{
-  width:8px;height:8px;border-radius:50%;
-  background:rgba(233,30,99,0.3);transition:all 0.35s ease;
+  width:7px;height:7px;border-radius:50%;
+  background:rgba(233,30,99,0.35);transition:all 0.4s ease;
 }
-#pageDots .dot.active{background:#e91e63;transform:scale(1.5);box-shadow:0 0 8px rgba(233,30,99,0.5)}
+#pageDots .dot.active{background:#e91e63;transform:scale(1.6);box-shadow:0 0 10px rgba(233,30,99,0.5)}
 
 /* ============ 开场标题 ============ */
 #heroText{
@@ -80,28 +87,20 @@ html,body{
   font-size:clamp(1rem,3vw,1.6rem);color:#d81b60;margin-top:0.5em;opacity:0.85;
 }
 
-/* ============ 页面标签 ============ */
-#pageLabel{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  z-index:12;pointer-events:none;font-size:clamp(1.2rem,4vw,2rem);
-  font-weight:700;color:#e91e63;opacity:0;transition:opacity 0.2s ease;
-  letter-spacing:0.06em;
-}
-
 /* ============ 信息面板 ============ */
 #infoPanel{
-  position:fixed;bottom:80px;left:16px;z-index:20;
+  position:fixed;bottom:70px;left:16px;z-index:20;
   background:rgba(255,255,255,0.85);backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
   border:2px solid #f8bbd0;border-radius:18px;
   padding:10px 16px;font-size:13px;color:#c2185b;
   box-shadow:0 4px 16px rgba(233,30,99,0.15);pointer-events:none;line-height:1.6;
-  transition:opacity 0.3s ease;
+  transition:opacity 0.4s ease;
 }
 
 /* ============ 音乐按钮 ============ */
 #musicBtn{
-  position:fixed;bottom:24px;right:16px;z-index:30;
+  position:fixed;bottom:20px;right:16px;z-index:30;
   width:48px;height:48px;border-radius:50%;
   background:rgba(255,255,255,0.88);backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
@@ -139,14 +138,15 @@ html,body{
   color:rgba(255,255,255,0.7);font-size:14px;
 }
 
-/* ============ 留言板（第3页） ============ */
+/* ============ 留言板页面（第3页） ============ */
 #messagePage{
   position:fixed;top:0;left:0;width:100%;height:100%;z-index:8;
   display:flex;align-items:center;justify-content:center;
-  pointer-events:none;opacity:0;transition:opacity 0.35s ease;
-  background:rgba(255,240,245,0.5);
+  opacity:0;pointer-events:none;transition:opacity 0.5s ease,transform 0.5s ease;
+  transform:translateY(40px);
+  background:rgba(255,240,245,0.45);
 }
-#messagePage.active{opacity:1;pointer-events:auto}
+#messagePage.active{opacity:1;pointer-events:auto;transform:translateY(0)}
 #messagePage .boardWrapper{
   width:min(460px,94vw);max-height:75vh;
   background:#f5e6d3;
@@ -182,21 +182,20 @@ html,body{
 #messagePage .inputRow button:active{transform:scale(0.94)}
 #messagePage .notes{
   display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
-  overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;
-  padding:4px 0;
+  overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;padding:4px 0;
 }
 .sticky-note{
   padding:12px 14px;border-radius:2px 14px 2px 14px;
   font-size:12px;max-width:150px;box-shadow:2px 3px 8px rgba(0,0,0,0.12);
-  word-break:break-word;line-height:1.5;
+  word-break:break-word;line-height:1.5;position:relative;
 }
+.sticky-note::before{content:'📌';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:14px}
 .sticky-note .noteAuthor{font-weight:700;font-size:13px;margin-bottom:2px}
 .sticky-note .noteTime{font-size:10px;opacity:0.55;margin-top:6px;text-align:right}
-.sticky-note::before{content:'📌';position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:14px}
 
 /* ============ 时光卡片 ============ */
 #daysCard{
-  position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:25;
+  position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:25;
   background:rgba(255,255,255,0.88);backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);
   border:2px solid #f8bbd0;border-radius:20px;
@@ -213,53 +212,47 @@ html,body{
   letter-spacing:0.04em;line-height:1.2;
 }
 
-/* ============ 滑动提示 ============ */
-#swipeHint{
-  position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:20;
-  font-size:12px;color:#ad1457;opacity:0;transition:opacity 0.4s ease;
-  pointer-events:none;letter-spacing:0.04em;
+/* ============ 滑动视觉反馈层 ============ */
+#swipeOverlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:3;
+  pointer-events:none;opacity:0;transition:opacity 0.15s ease;
 }
-#swipeHint.visible{opacity:0.7}
+#swipeOverlay.show{opacity:1}
 
 /* ============ 响应式 ============ */
 @media (max-width:600px){
   .photo-card .polaroid{width:110px;padding:5px 5px 18px 5px}
   .photo-card .polaroid img{width:100px;height:100px}
-  .photo-card .polaroid::after{font-size:10px}
-  #infoPanel{bottom:72px;left:10px;padding:8px 12px;font-size:11px}
-  #musicBtn{bottom:18px;right:10px;width:42px;height:42px;font-size:20px}
+  .photo-card .polaroid::after{font-size:10px;bottom:3px}
+  #infoPanel{bottom:62px;left:10px;padding:8px 12px;font-size:11px}
+  #musicBtn{bottom:14px;right:10px;width:42px;height:42px;font-size:20px}
   #fullscreenViewer .navBtn{width:38px;height:38px;font-size:18px}
-  #pageDots{bottom:80px}
-  #swipeHint{bottom:110px}
-  #messagePage .boardWrapper{max-height:70vh}
+  #pageDots{bottom:72px}
 }
 </style>
 </head>
 <body>
 
 <canvas id="particleCanvas"></canvas>
+<div id="swipeOverlay"></div>
 
 <div id="heroText">
   <div class="title">生日快乐</div>
   <div class="subtitle">致我最爱的宝贝</div>
 </div>
 
-<div id="pageLabel"></div>
-
 <div id="photoContainer"></div>
 
 <div id="pageDots">
-  <span class="dot active" data-idx="0"></span>
-  <span class="dot" data-idx="1"></span>
-  <span class="dot" data-idx="2"></span>
+  <span class="dot active"></span>
+  <span class="dot"></span>
+  <span class="dot"></span>
 </div>
-
-<div id="swipeHint">← 滑动切换页面 →</div>
 
 <div id="fullscreenViewer">
   <button class="closeBtn">✕</button>
   <button class="navBtn prev">◂</button>
-  <img src="" alt="全屏照片"/>
+  <img src="" alt="全屏照片">
   <button class="navBtn next">▸</button>
   <span class="counter"></span>
 </div>
@@ -277,7 +270,6 @@ html,body{
 
 <button id="musicBtn" class="playing">🎵</button>
 
-<!-- 第3页：留言板 -->
 <div id="messagePage">
   <div class="boardWrapper">
     <div class="boardTitle">把你想说的话，贴在这里叭</div>
@@ -292,33 +284,30 @@ html,body{
 
 <script>
 /* =========================================================================
- *  浪漫生日祝福网站 — 三页滑动版
- *  第1页：合照花雨 | 第2页：独照花雨 | 第3页：留言板
+ *  浪漫生日祝福网站 — 上下滑动三页版
+ *  第1页：爱心爆炸+合照花雨 | 第2页：独照花雨 | 第3页：留言板
+ *  向上滑动 = 下一页（从下方淡入），向下滑动 = 上一页（向上方淡出）
  * ========================================================================= */
 
-// ==================== 配置 ====================
 const CONFIG = {
   startDate: new Date('2026-01-20'),
   heartDuration: 3800,
-  burstDuration: 1200,
+  burstDuration: 1300,
   particleCount: 3200,
   sparkleCount: 80,
-  photoFallInterval: 2200,
+  photoFallInterval: 1800,
   maxFallingPhotos: 8,
   heartScale: 0.7,
-  fallSpeedBase: 0.55,    // 基础下落速度（提高）
-  fallSpeedRange: 0.45,   // 速度随机范围
+  fallSpeedBase: 0.85,     // 基础下落速度
+  fallSpeedRange: 0.55,
 };
-
-// 移动端自动降配
 const isMobile = window.innerWidth < 768;
 if (isMobile) {
   CONFIG.particleCount = 1800;
-  CONFIG.sparkleCount = 45;
+  CONFIG.sparkleCount = 40;
   CONFIG.maxFallingPhotos = 6;
 }
 
-// ==================== 照片列表 ====================
 const PHOTO_PATHS = {
   together: [
     '微信图片_20260522201856_61_100.jpg','微信图片_20260522201857_62_100.jpg',
@@ -341,17 +330,11 @@ const PHOTO_PATHS = {
 
 // ==================== 全局状态 ====================
 let state = {
-  phase: 'heart',           // 'heart' | 'bursting' | 'falling'
-  currentPage: 0,           // 0=合照, 1=独照, 2=留言板
-  targetPage: 0,
+  phase: 'heart',
+  currentPage: 0,
   collectedCount: 0,
-  heartTime: 0,
   musicPlaying: true,
   fullscreenIndex: -1,
-  isSwiping: false,
-  swipeStartX: 0,
-  swipeDelta: 0,
-  pageSlideX: 0,            // 滑动偏移(px)
 };
 
 // ==================== DOM 引用 ====================
@@ -359,7 +342,6 @@ const canvas = document.getElementById('particleCanvas');
 const ctx = canvas.getContext('2d');
 const photoContainer = document.getElementById('photoContainer');
 const heroText = document.getElementById('heroText');
-const pageLabel = document.getElementById('pageLabel');
 const infoFalling = document.getElementById('fallingCount');
 const infoCollected = document.getElementById('collectedCount');
 const musicBtn = document.getElementById('musicBtn');
@@ -372,7 +354,6 @@ const msgNickname = document.getElementById('msgNickname');
 const msgContentInput = document.getElementById('msgContent');
 const msgSend = document.getElementById('msgSend');
 const notesContainer = document.getElementById('notesContainer');
-const swipeHint = document.getElementById('swipeHint');
 const pageDots = document.getElementById('pageDots').querySelectorAll('.dot');
 const infoPanel = document.getElementById('infoPanel');
 
@@ -392,165 +373,119 @@ resizeCanvas();
 
 // ==================== 粒子系统 ====================
 class Particle {
-  constructor() {
-    this.reset();
-  }
+  constructor() { this.reset(); }
   reset() {
     this.t = Math.random() * Math.PI * 2;
     this.heartRadius = Math.pow(Math.random(), 0.55);
     this.baseSize = 1.2 + Math.random() * 3.2;
     this.size = this.baseSize;
     const hue = 340 + Math.random() * 30;
-    const sat = 60 + Math.random() * 40;
-    const light = 50 + Math.random() * 35;
-    this.color = `hsla(${hue},${sat}%,${light}%,${0.7+Math.random()*0.3})`;
-    this.glowColor = `hsla(${hue},${sat}%,${light+10}%,0.5)`;
+    this.color = `hsla(${hue},${60+Math.random()*40}%,${50+Math.random()*35}%,${0.7+Math.random()*0.3})`;
+    this.glowColor = `hsla(${hue},${60+Math.random()*40}%,${60+Math.random()*25}%,0.5)`;
     this.floatOffset = Math.random() * Math.PI * 2;
     this.floatSpeed = 0.6 + Math.random() * 1.2;
     this.floatAmp = 1 + Math.random() * 4;
     this.rotation = Math.random() * Math.PI * 2;
     this.rotationSpeed = (Math.random() - 0.5) * 0.03;
     this.trail = [];
-    this.maxTrail = isMobile ? 2 : 3 + Math.floor(Math.random() * 3);
-    this.petalX = 0; this.petalY = 0;
-    this.petalVX = 0; this.petalVY = 0;
-    this.petalRotation = 0; this.petalRotSpeed = 0;
-    this.petalSway = 0; this.petalSwaySpeed = 0;
+    this.maxTrail = isMobile ? 1 : 2 + Math.floor(Math.random() * 3);
+    this.petalX = this.petalY = 0;
+    this.petalVX = this.petalVY = 0;
+    this.petalRotation = this.petalRotSpeed = 0;
+    this.petalSway = this.petalSwaySpeed = 0;
     this.petalSize = this.baseSize * (0.8 + Math.random() * 2);
   }
-
   getHeartPos(scale, time) {
     const hx = 16 * Math.pow(Math.sin(this.t), 3);
-    const hy = 13 * Math.cos(this.t) - 5 * Math.cos(2*this.t) - 2 * Math.cos(3*this.t) - Math.cos(4*this.t);
+    const hy = 13 * Math.cos(this.t) - 5*Math.cos(2*this.t) - 2*Math.cos(3*this.t) - Math.cos(4*this.t);
     const breathe = 1 + Math.sin(time * 1.8) * 0.025;
-    const floatY = Math.sin(time * this.floatSpeed + this.floatOffset) * this.floatAmp;
-    const floatX = Math.cos(time * this.floatSpeed * 0.7 + this.floatOffset) * this.floatAmp * 0.5;
     return {
-      x: hx * this.heartRadius * scale * breathe + floatX,
-      y: -hy * this.heartRadius * scale * breathe + floatY,
+      x: hx * this.heartRadius * scale * breathe + Math.cos(time*this.floatSpeed*0.7+this.floatOffset)*this.floatAmp*0.5,
+      y: -hy * this.heartRadius * scale * breathe + Math.sin(time*this.floatSpeed+this.floatOffset)*this.floatAmp,
     };
   }
-
-  initPetal(heartPos, cx, cy) {
-    this.petalX = cx + heartPos.x;
-    this.petalY = cy + heartPos.y;
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1 + Math.random() * 6;
-    this.petalVX = Math.cos(angle) * speed + (Math.random()-0.5)*3;
-    this.petalVY = Math.sin(angle) * speed - Math.random()*4 - 2;
+  initPetal(hp, cx, cy) {
+    this.petalX = cx + hp.x; this.petalY = cy + hp.y;
+    const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 6;
+    this.petalVX = Math.cos(a) * sp + (Math.random()-0.5)*3;
+    this.petalVY = Math.sin(a) * sp - Math.random()*4 - 2;
     this.petalRotation = Math.random() * Math.PI * 2;
-    this.petalRotSpeed = (Math.random()-0.5) * 0.06;
-    this.petalSway = 0;
-    this.petalSwaySpeed = 0.01 + Math.random() * 0.025;
+    this.petalRotSpeed = (Math.random()-0.5)*0.06;
+    this.petalSway = 0; this.petalSwaySpeed = 0.01+Math.random()*0.025;
   }
-
-  updatePetal(gravity, wind) {
-    this.petalVY += gravity;
-    this.petalVX += wind;
-    this.petalX += this.petalVX;
-    this.petalY += this.petalVY;
+  updatePetal(g, w) {
+    this.petalVY += g; this.petalVX += w;
+    this.petalX += this.petalVX; this.petalY += this.petalVY;
     this.petalRotation += this.petalRotSpeed;
     this.petalSway += this.petalSwaySpeed;
-    this.petalX += Math.sin(this.petalSway) * 0.4;
+    this.petalX += Math.sin(this.petalSway)*0.4;
     if (this.petalY > window.innerHeight + 60) {
-      this.petalY = -40;
-      this.petalX = Math.random() * window.innerWidth;
-      this.petalVY = 0.3 + Math.random() * 1.2;
+      this.petalY = -40; this.petalX = Math.random()*window.innerWidth;
+      this.petalVY = 0.3+Math.random()*1.2;
     }
   }
-
   updateTrail(x, y) {
     this.trail.push({x,y,life:1});
     if (this.trail.length > this.maxTrail) this.trail.shift();
-    for (let t of this.trail) t.life -= 0.2;
+    for (let t of this.trail) t.life -= 0.25;
     this.trail = this.trail.filter(t => t.life > 0);
   }
-
   drawHeart(ctx, x, y, alpha) {
-    ctx.save();
-    ctx.globalAlpha = alpha * 0.35;
-    ctx.fillStyle = this.glowColor;
-    ctx.beginPath(); ctx.arc(x, y, this.size * 2.5, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-
-    for (let i = 0; i < this.trail.length; i++) {
-      const t = this.trail[i];
-      ctx.save();
-      ctx.globalAlpha = alpha * t.life * 0.4;
-      ctx.fillStyle = this.color;
-      ctx.beginPath(); ctx.arc(t.x, t.y, this.size*0.7, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
+    ctx.save(); ctx.globalAlpha = alpha*0.35; ctx.fillStyle = this.glowColor;
+    ctx.beginPath(); ctx.arc(x,y,this.size*2.5,0,Math.PI*2); ctx.fill(); ctx.restore();
+    for (const t of this.trail) {
+      ctx.save(); ctx.globalAlpha = alpha*t.life*0.4; ctx.fillStyle = this.color;
+      ctx.beginPath(); ctx.arc(t.x,t.y,this.size*0.7,0,Math.PI*2); ctx.fill(); ctx.restore();
     }
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(x, y); ctx.rotate(this.rotation);
-    ctx.fillStyle = this.color;
-    const s = this.size;
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x,y); ctx.rotate(this.rotation);
+    ctx.fillStyle = this.color; const s = this.size;
     ctx.beginPath();
-    ctx.moveTo(0,-s);
-    ctx.bezierCurveTo(s*0.6,-s*0.6, s*0.8,s*0.3, 0,s);
-    ctx.bezierCurveTo(-s*0.8,s*0.3, -s*0.6,-s*0.6, 0,-s);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.beginPath(); ctx.arc(0, 0, s*0.3, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
+    ctx.moveTo(0,-s); ctx.bezierCurveTo(s*0.6,-s*0.6,s*0.8,s*0.3,0,s);
+    ctx.bezierCurveTo(-s*0.8,s*0.3,-s*0.6,-s*0.6,0,-s); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.beginPath(); ctx.arc(0,0,s*0.3,0,Math.PI*2); ctx.fill(); ctx.restore();
   }
-
   drawPetal(ctx, x, y, alpha) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(x, y); ctx.rotate(this.petalRotation);
-    ctx.fillStyle = this.color;
-    const s = this.petalSize;
-    ctx.beginPath();
-    ctx.moveTo(0,-s);
-    ctx.bezierCurveTo(s*0.5,-s*0.5, s*0.7,s*0.2, 0,s*0.9);
-    ctx.bezierCurveTo(-s*0.7,s*0.2, -s*0.5,-s*0.5, 0,-s);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.beginPath(); ctx.arc(0, 0, s*0.25, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x,y); ctx.rotate(this.petalRotation);
+    ctx.fillStyle = this.color; const s = this.petalSize;
+    ctx.beginPath(); ctx.moveTo(0,-s);
+    ctx.bezierCurveTo(s*0.5,-s*0.5,s*0.7,s*0.2,0,s*0.9);
+    ctx.bezierCurveTo(-s*0.7,s*0.2,-s*0.5,-s*0.5,0,-s); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.beginPath(); ctx.arc(0,0,s*0.25,0,Math.PI*2); ctx.fill(); ctx.restore();
   }
 }
-
 const particles = [];
 for (let i = 0; i < CONFIG.particleCount; i++) particles.push(new Particle());
 
 // ==================== 萤火虫 ====================
 class Sparkle {
-  constructor() {
-    this.reset(true);
-  }
+  constructor() { this.reset(true); }
   reset(init) {
-    this.x = Math.random() * window.innerWidth;
-    this.y = init ? Math.random() * window.innerHeight : -20;
-    this.size = 0.8 + Math.random() * 2.2;
-    this.speedY = 0.15 + Math.random() * 0.5;
-    this.speedX = (Math.random() - 0.5) * 0.3;
-    this.opacity = 0.2 + Math.random() * 0.5;
-    this.phase = Math.random() * Math.PI * 2;
-    this.flickerSpeed = 1 + Math.random() * 2;
+    this.x = Math.random()*window.innerWidth;
+    this.y = init ? Math.random()*window.innerHeight : -20;
+    this.size = 0.8+Math.random()*2.2;
+    this.speedY = 0.15+Math.random()*0.5;
+    this.speedX = (Math.random()-0.5)*0.3;
+    this.opacity = 0.2+Math.random()*0.5;
+    this.phase = Math.random()*Math.PI*2;
+    this.flickerSpeed = 1+Math.random()*2;
   }
   update() {
-    this.y -= this.speedY;
-    this.x += this.speedX + Math.sin(this.phase) * 0.2;
+    this.y -= this.speedY; this.x += this.speedX+Math.sin(this.phase)*0.2;
     this.phase += 0.02;
-    if (this.y < -20) { this.y = window.innerHeight + 20; this.x = Math.random() * window.innerWidth; }
-    if (this.x < -20) this.x = window.innerWidth + 20;
-    if (this.x > window.innerWidth + 20) this.x = -20;
+    if (this.y < -20) { this.y = window.innerHeight+20; this.x = Math.random()*window.innerWidth; }
+    if (this.x < -20) this.x = window.innerWidth+20;
+    if (this.x > window.innerWidth+20) this.x = -20;
   }
   draw(ctx, time) {
-    const flicker = 0.5 + 0.5 * Math.sin(time * this.flickerSpeed + this.phase);
-    const alpha = this.opacity * flicker;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size*2);
-    g.addColorStop(0, 'rgba(255,235,180,1)');
-    g.addColorStop(0.4, 'rgba(255,220,150,0.7)');
-    g.addColorStop(1, 'rgba(255,200,100,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(this.x, this.y, this.size*2, 0, Math.PI*2); ctx.fill();
+    const f = 0.5+0.5*Math.sin(time*this.flickerSpeed+this.phase);
+    ctx.save(); ctx.globalAlpha = this.opacity*f;
+    const g = ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size*2);
+    g.addColorStop(0,'rgba(255,235,180,1)');
+    g.addColorStop(0.4,'rgba(255,220,150,0.7)');
+    g.addColorStop(1,'rgba(255,200,100,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(this.x,this.y,this.size*2,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
 }
@@ -558,70 +493,59 @@ const sparkles = [];
 for (let i = 0; i < CONFIG.sparkleCount; i++) sparkles.push(new Sparkle());
 
 // ==================== 照片卡片 ====================
-const activePhotoIndices = []; // 跟踪当前显示的照文件索引，防止重复
+const activePhotoIndices = [];
+function getAlbum(p) { return p===0?'合照':'独照'; }
+function getList(p) { return p===0?PHOTO_PATHS.together:PHOTO_PATHS.solo; }
 
-function getAlbumForPage(page) {
-  return page === 0 ? 'together' : 'solo';
-}
-function getPhotoListForPage(page) {
-  return page === 0 ? PHOTO_PATHS.together : PHOTO_PATHS.solo;
-}
-
-// 将屏幕宽度分成 N 个扇区，均匀分布照片
 function getDistributedX() {
-  const margin = 30;
-  const usableWidth = window.innerWidth - margin * 2;
-  const sectors = CONFIG.maxFallingPhotos + 2;
-  const sectorW = usableWidth / sectors;
-  const sector = Math.floor(Math.random() * sectors);
-  return margin + sector * sectorW + Math.random() * sectorW * 0.6;
+  const m = 30, uw = window.innerWidth - m*2;
+  const sw = uw / (CONFIG.maxFallingPhotos + 2);
+  const sec = Math.floor(Math.random()*(CONFIG.maxFallingPhotos+2));
+  return m + sec*sw + Math.random()*sw*0.5;
 }
 
 class PhotoCard {
   constructor(imgSrc, index) {
-    this.imgSrc = imgSrc;
-    this.index = index;
+    this.imgSrc = imgSrc; this.index = index;
     this.x = getDistributedX();
-    this.y = -160 - Math.random() * 350;
-    this.rotation = (Math.random() - 0.5) * 20;
-    this.rotationSpeed = (Math.random() - 0.5) * 0.3;
-    this.fallSpeed = CONFIG.fallSpeedBase + Math.random() * CONFIG.fallSpeedRange;
-    this.swayAmp = 15 + Math.random() * 35;
-    this.swaySpeed = 0.01 + Math.random() * 0.018;
-    this.swayPhase = Math.random() * Math.PI * 2;
-    this.scale = 1;
-    this.targetScale = 1;
-    this.dragging = false;
-    this.collected = false;
-    this.dragOffsetX = 0;
-    this.dragOffsetY = 0;
-    this.lastTouchDist = 0;
-    this.pinchScale = 1;
-    this.element = null;
-    this.imgElement = null;
+    this.y = -160 - Math.random()*300;
+    this.rotation = (Math.random()-0.5)*18;
+    this.rotationSpeed = (Math.random()-0.5)*0.25;
+    this.fallSpeed = CONFIG.fallSpeedBase + Math.random()*CONFIG.fallSpeedRange;
+    this.swayAmp = 12+Math.random()*30;
+    this.swaySpeed = 0.012+Math.random()*0.016;
+    this.swayPhase = Math.random()*Math.PI*2;
+    this.scale = 1; this.targetScale = 1;
+    this.dragging = false; this.collected = false;
+    this.dragOffsetX = 0; this.dragOffsetY = 0;
+    this.lastTouchDist = 0; this.pinchScale = 1;
+    this.element = null; this.imgElement = null;
     this.createDOM();
   }
-
   createDOM() {
     const card = document.createElement('div');
     card.className = 'photo-card';
     card.innerHTML = `<div class="polaroid"><img src="${this.imgSrc}" alt="照片" loading="lazy"></div>`;
     this.element = card;
     this.imgElement = card.querySelector('img');
-
+    // 图片加载完成后淡入
+    this.imgElement.addEventListener('load', () => {
+      this.imgElement.classList.add('loaded');
+    });
+    // 如果图片已缓存（complete=true）立即标记
+    if (this.imgElement.complete) {
+      this.imgElement.classList.add('loaded');
+    }
     this.imgElement.addEventListener('error', () => {
-      // 加载失败，移除卡片并释放索引
       const idx = activePhotoIndices.indexOf(this.index);
       if (idx >= 0) activePhotoIndices.splice(idx, 1);
       this.remove();
     });
 
-    // 鼠标
     card.addEventListener('mousedown', e => this.onDragStart(e.clientX, e.clientY));
     card.addEventListener('mouseenter', () => { if(!this.dragging) card.classList.add('touched'); });
     card.addEventListener('mouseleave', () => { if(!this.dragging) card.classList.remove('touched'); });
 
-    // 触摸
     card.addEventListener('touchstart', e => {
       if (e.touches.length === 2) {
         this.lastTouchDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
@@ -633,36 +557,29 @@ class PhotoCard {
     }, {passive: false});
     card.addEventListener('touchend', () => { card.classList.remove('touched'); });
 
-    // 双击全屏
     card.addEventListener('dblclick', () => this.openFullscreen());
-    let lastTap = 0;
+    let lt = 0;
     card.addEventListener('touchend', e => {
-      const now = Date.now();
-      if (now - lastTap < 300 && !this.dragging) this.openFullscreen();
-      lastTap = now;
+      const n = Date.now();
+      if (n - lt < 300 && !this.dragging) this.openFullscreen();
+      lt = n;
     });
 
     photoContainer.appendChild(card);
   }
-
   onDragStart(px, py) {
     if (state.phase !== 'falling') return;
-    this.dragging = true;
-    this.collected = true;
+    this.dragging = true; this.collected = true;
     this.element.classList.add('dragging');
-    const rect = this.element.getBoundingClientRect();
-    this.dragOffsetX = px - rect.left;
-    this.dragOffsetY = py - rect.top;
+    const r = this.element.getBoundingClientRect();
+    this.dragOffsetX = px - r.left; this.dragOffsetY = py - r.top;
     this.targetScale = 1.08;
   }
-
   onDragMove(px, py) {
     if (!this.dragging) return;
-    this.x = px - this.dragOffsetX;
-    this.y = py - this.dragOffsetY;
+    this.x = px - this.dragOffsetX; this.y = py - this.dragOffsetY;
     this.fallSpeed = 0;
   }
-
   onDragEnd() {
     if (!this.dragging) return;
     this.dragging = false;
@@ -670,628 +587,439 @@ class PhotoCard {
     this.targetScale = 1;
     setTimeout(() => {
       if (!this.dragging) {
-        this.fallSpeed = CONFIG.fallSpeedBase + Math.random() * CONFIG.fallSpeedRange;
+        this.fallSpeed = CONFIG.fallSpeedBase+Math.random()*CONFIG.fallSpeedRange;
         this.collected = false;
         const idx = activePhotoIndices.indexOf(this.index);
         if (idx >= 0) activePhotoIndices.splice(idx, 1);
       }
     }, 5000);
   }
-
   onPinchMove(touches) {
-    const dist = Math.hypot(touches[0].clientX-touches[1].clientX, touches[0].clientY-touches[1].clientY);
-    if (this.lastTouchDist > 0) {
-      this.pinchScale = Math.min(3, Math.max(0.5, this.pinchScale * (dist / this.lastTouchDist)));
-    }
-    this.lastTouchDist = dist;
+    const d = Math.hypot(touches[0].clientX-touches[1].clientX, touches[0].clientY-touches[1].clientY);
+    if (this.lastTouchDist > 0) this.pinchScale = Math.min(3, Math.max(0.5, this.pinchScale*(d/this.lastTouchDist)));
+    this.lastTouchDist = d;
   }
-
   onPinchEnd() {
     this.lastTouchDist = 0;
     const anim = () => {
-      this.pinchScale += (1 - this.pinchScale) * 0.2;
-      if (Math.abs(this.pinchScale - 1) > 0.01) requestAnimationFrame(anim);
+      this.pinchScale += (1-this.pinchScale)*0.2;
+      if (Math.abs(this.pinchScale-1) > 0.01) requestAnimationFrame(anim);
       else this.pinchScale = 1;
     };
     requestAnimationFrame(anim);
   }
-
   openFullscreen() {
-    const photos = getPhotoListForPage(state.currentPage);
-    const album = getAlbumForPage(state.currentPage);
-    openFullscreenViewer(photos, album, this.index);
+    const list = getList(state.currentPage);
+    openFullscreenViewer(list, getAlbum(state.currentPage), this.index);
   }
-
   update() {
     if (this.dragging) return;
     this.y += this.fallSpeed;
     this.swayPhase += this.swaySpeed;
-    this.x += Math.sin(this.swayPhase) * 0.35 + (window._globalWind || 0);
+    this.x += Math.sin(this.swayPhase)*0.3 + (window._globalWind||0);
     this.rotation += this.rotationSpeed;
-    this.scale += (this.targetScale * this.pinchScale - this.scale) * 0.15;
-
+    this.scale += (this.targetScale*this.pinchScale - this.scale)*0.15;
     if (this.y > window.innerHeight + 200) {
       const idx = activePhotoIndices.indexOf(this.index);
       if (idx >= 0) activePhotoIndices.splice(idx, 1);
-      this.y = -180 - Math.random() * 300;
+      this.y = -180 - Math.random()*280;
       this.x = getDistributedX();
-      this.rotation = (Math.random() - 0.5) * 20;
-      this.fallSpeed = CONFIG.fallSpeedBase + Math.random() * CONFIG.fallSpeedRange;
+      this.rotation = (Math.random()-0.5)*18;
+      this.fallSpeed = CONFIG.fallSpeedBase+Math.random()*CONFIG.fallSpeedRange;
       this.collected = false;
     }
   }
-
   render() {
     if (!this.element) return;
     this.element.style.transform = `translate(${this.x}px,${this.y}px) rotate(${this.rotation}deg) scale(${this.scale})`;
   }
-
-  remove() {
-    if (this.element) { this.element.remove(); this.element = null; }
-  }
+  remove() { if (this.element) { this.element.remove(); this.element = null; } }
 }
 
 // ==================== 照片管理 ====================
 let photoCards = [];
-
 function spawnPhotoCard() {
   if (state.phase !== 'falling') return;
-  if (state.currentPage >= 2) return; // 第3页不生成照片
-
-  const activePhotos = photoCards.filter(c => c.element !== null);
-  if (activePhotos.length >= CONFIG.maxFallingPhotos) return;
-
-  const list = getPhotoListForPage(state.currentPage);
-  const album = state.currentPage === 0 ? '合照' : '独照';
-
-  // 排除已显示的索引
+  if (state.currentPage >= 2) return;
+  const active = photoCards.filter(c => c.element !== null);
+  if (active.length >= CONFIG.maxFallingPhotos) return;
+  const list = getList(state.currentPage);
   const available = [];
   for (let i = 0; i < list.length; i++) {
     if (!activePhotoIndices.includes(i)) available.push(i);
   }
   if (available.length === 0) return;
-
-  const randomIndex = available[Math.floor(Math.random() * available.length)];
-  activePhotoIndices.push(randomIndex);
-
-  const src = `./照片/${album}/${list[randomIndex]}`;
-  const card = new PhotoCard(src, randomIndex);
-  photoCards.push(card);
+  const ri = available[Math.floor(Math.random()*available.length)];
+  activePhotoIndices.push(ri);
+  photoCards.push(new PhotoCard(`./照片/${getAlbum(state.currentPage)}/${list[ri]}`, ri));
 }
-
 function clearAllPhotoCards() {
-  for (const card of photoCards) card.remove();
+  for (const c of photoCards) c.remove();
   photoCards = [];
   activePhotoIndices.length = 0;
 }
 
-function switchToPage(pageIdx) {
-  if (state.currentPage === pageIdx) return;
-  state.currentPage = pageIdx;
-  clearAllPhotoCards();
+// ==================== 页面切换 ====================
+function updatePageUI() {
+  const p = state.currentPage;
+  pageDots.forEach((d,i) => d.classList.toggle('active', i === p));
 
-  // 更新页面指示点
-  pageDots.forEach((d, i) => d.classList.toggle('active', i === pageIdx));
-
-  // 第3页：留言板
-  if (pageIdx === 2) {
+  // Canvas：只在照片页显示
+  canvas.classList.toggle('hidden', p >= 2);
+  // 照片容器：只在照片页显示
+  photoContainer.classList.toggle('hidden', p >= 2);
+  // 信息面板
+  infoPanel.style.opacity = p >= 2 ? '0' : '1';
+  // 留言板
+  if (p === 2) {
     messagePage.classList.add('active');
-    infoPanel.style.opacity = '0';
-    swipeHint.classList.remove('visible');
     renderMessages();
   } else {
     messagePage.classList.remove('active');
-    infoPanel.style.opacity = '1';
-    // 如果已在飘落阶段，立即生成照片
-    if (state.phase === 'falling') {
-      photoFallStarted = true;
-      lastSpawnTime = 0;
-    }
   }
+}
 
-  // 显示页面标签动画
-  const labels = ['合照', '独照', '留言板'];
-  pageLabel.textContent = labels[pageIdx];
-  pageLabel.style.opacity = '1';
-  setTimeout(() => { pageLabel.style.opacity = '0'; }, 800);
+function switchToPage(newPage) {
+  if (state.currentPage === newPage) return;
+  const oldPage = state.currentPage;
+  state.currentPage = newPage;
+  clearAllPhotoCards();
+  updatePageUI();
+
+  // 切换到照片页时触发重新生成
+  if (newPage < 2 && state.phase === 'falling') {
+    photoFallStarted = true;
+    lastSpawnTime = 0;
+  }
 }
 
 // ==================== 全屏查看器 ====================
-let fsCurrentList = [];
-let fsAlbum = '';
-let fsCurrentIndex = 0;
-
-function openFullscreenViewer(photoList, album, index) {
-  fsCurrentList = photoList;
-  fsAlbum = album;
-  fsCurrentIndex = index;
-  state.fullscreenIndex = index;
-  showFullscreenImage();
-  fullscreenViewer.classList.add('active');
+let fsList = [], fsAlbum = '', fsIdx = 0;
+function openFullscreenViewer(list, album, idx) {
+  fsList = list; fsAlbum = album; fsIdx = idx; state.fullscreenIndex = idx;
+  showFS(); fullscreenViewer.classList.add('active');
 }
-function closeFullscreenViewer() {
-  fullscreenViewer.classList.remove('active');
-  state.fullscreenIndex = -1;
+function closeFS() { fullscreenViewer.classList.remove('active'); state.fullscreenIndex = -1; }
+function showFS() {
+  if (fsIdx < 0 || fsIdx >= fsList.length) return;
+  fullscreenImg.src = `./照片/${fsAlbum}/${fsList[fsIdx]}`;
+  fullscreenCounter.textContent = `${fsIdx+1} / ${fsList.length}`;
 }
-function showFullscreenImage() {
-  if (fsCurrentIndex < 0 || fsCurrentIndex >= fsCurrentList.length) return;
-  fullscreenImg.src = `./照片/${fsAlbum}/${fsCurrentList[fsCurrentIndex]}`;
-  fullscreenCounter.textContent = `${fsCurrentIndex+1} / ${fsCurrentList.length}`;
-}
-function navigateFullscreen(delta) {
-  fsCurrentIndex = (fsCurrentIndex + delta + fsCurrentList.length) % fsCurrentList.length;
-  showFullscreenImage();
-}
-
-fullscreenViewer.querySelector('.closeBtn').addEventListener('click', closeFullscreenViewer);
-fullscreenViewer.querySelector('.prev').addEventListener('click', () => navigateFullscreen(-1));
-fullscreenViewer.querySelector('.next').addEventListener('click', () => navigateFullscreen(1));
-fullscreenViewer.addEventListener('click', e => { if (e.target === fullscreenViewer) closeFullscreenViewer(); });
-
-// 全屏滑动
-let fsSwipeStart = 0, fsSwipeD = 0;
-fullscreenViewer.addEventListener('touchstart', e => {
-  fsSwipeStart = e.touches[0].clientX; fsSwipeD = 0;
-}, {passive: true});
+function navFS(d) { fsIdx = (fsIdx + d + fsList.length) % fsList.length; showFS(); }
+fullscreenViewer.querySelector('.closeBtn').addEventListener('click', closeFS);
+fullscreenViewer.querySelector('.prev').addEventListener('click', () => navFS(-1));
+fullscreenViewer.querySelector('.next').addEventListener('click', () => navFS(1));
+fullscreenViewer.addEventListener('click', e => { if (e.target === fullscreenViewer) closeFS(); });
+let fsSX = 0, fsSD = 0;
+fullscreenViewer.addEventListener('touchstart', e => { fsSX = e.touches[0].clientX; fsSD = 0; }, {passive:true});
 fullscreenViewer.addEventListener('touchmove', e => {
-  fsSwipeD = e.touches[0].clientX - fsSwipeStart;
-  fullscreenImg.style.transform = `translateX(${fsSwipeD}px)`;
-}, {passive: true});
+  fsSD = e.touches[0].clientX - fsSX; fullscreenImg.style.transform = `translateX(${fsSD}px)`;
+}, {passive:true});
 fullscreenViewer.addEventListener('touchend', () => {
-  fullscreenImg.style.transform = '';
-  if (Math.abs(fsSwipeD) > 80) navigateFullscreen(fsSwipeD > 0 ? -1 : 1);
+  fullscreenImg.style.transform = ''; if (Math.abs(fsSD) > 80) navFS(fsSD > 0 ? -1 : 1);
 });
 document.addEventListener('keydown', e => {
   if (state.fullscreenIndex < 0) return;
-  if (e.key === 'ArrowLeft') navigateFullscreen(-1);
-  if (e.key === 'ArrowRight') navigateFullscreen(1);
-  if (e.key === 'Escape') closeFullscreenViewer();
+  if (e.key === 'ArrowLeft') navFS(-1);
+  if (e.key === 'ArrowRight') navFS(1);
+  if (e.key === 'Escape') closeFS();
 });
 
-// ==================== 全局拖拽事件 ====================
+// ==================== 全局拖拽 ====================
 document.addEventListener('mousemove', e => {
-  for (const card of photoCards) { if (card.dragging) card.onDragMove(e.clientX, e.clientY); }
+  for (const c of photoCards) { if (c.dragging) c.onDragMove(e.clientX, e.clientY); }
 });
 document.addEventListener('mouseup', () => {
-  for (const card of photoCards) { if (card.dragging) card.onDragEnd(); }
+  for (const c of photoCards) { if (c.dragging) c.onDragEnd(); }
 });
 document.addEventListener('touchmove', e => {
   if (e.touches.length === 2) {
-    for (const card of photoCards) { if (card.lastTouchDist > 0) card.onPinchMove(e.touches); }
+    for (const c of photoCards) { if (c.lastTouchDist > 0) c.onPinchMove(e.touches); }
     return;
   }
-  for (const card of photoCards) {
-    if (card.dragging && e.touches.length === 1) {
-      e.preventDefault();
-      card.onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+  for (const c of photoCards) {
+    if (c.dragging && e.touches.length === 1) {
+      e.preventDefault(); c.onDragMove(e.touches[0].clientX, e.touches[0].clientY);
     }
   }
 }, {passive: false});
 document.addEventListener('touchend', e => {
-  for (const card of photoCards) {
-    if (card.dragging && e.touches.length === 0) card.onDragEnd();
-    if (card.lastTouchDist > 0 && e.touches.length < 2) card.onPinchEnd();
+  for (const c of photoCards) {
+    if (c.dragging && e.touches.length===0) c.onDragEnd();
+    if (c.lastTouchDist>0 && e.touches.length<2) c.onPinchEnd();
   }
 });
 
-// ==================== 页面滑动系统 ====================
-let swipeStartX = 0, swipeStartY = 0, swipeActive = false;
-let swipeDelta = 0;
+// ==================== 上下滑动切页系统 ====================
+let swipeSY = 0, swipeActive = false, swipeDY = 0;
+let swipeVelocity = 0, swipeLastY = 0, swipeLastT = 0;
 
 document.addEventListener('touchstart', e => {
   if (state.fullscreenIndex >= 0) return;
-  if (e.target.closest('#messagePage') && state.currentPage === 2) return;
-  // 排除照片拖拽
+  // 如果在留言板页面且触摸在留言板内，不拦截
+  if (state.currentPage === 2 && e.target.closest('#messagePage')) return;
+  // 如果触摸在照片上且单指，交给照片拖拽
   if (e.target.closest('.photo-card') && e.touches.length === 1) return;
-  swipeStartX = e.touches[0].clientX;
-  swipeStartY = e.touches[0].clientY;
+
+  swipeSY = e.touches[0].clientY;
+  swipeLastY = swipeSY;
+  swipeLastT = Date.now();
   swipeActive = true;
-  swipeDelta = 0;
+  swipeDY = 0;
+  swipeVelocity = 0;
 }, {passive: true});
 
 document.addEventListener('touchmove', e => {
   if (!swipeActive) return;
-  const dx = e.touches[0].clientX - swipeStartX;
-  const dy = e.touches[0].clientY - swipeStartY;
-  // 水平滑动角度小于30度时才拦截
-  if (Math.abs(dx) > Math.abs(dy) * 2 && Math.abs(dx) > 10) {
-    swipeDelta = dx;
-    state.pageSlideX = dx;
-    state.isSwiping = true;
+  const cy = e.touches[0].clientY;
+  swipeDY = cy - swipeSY;
+  const now = Date.now();
+  const dt = now - swipeLastT;
+  if (dt > 0) swipeVelocity = (cy - swipeLastY) / dt;
+  swipeLastY = cy;
+  swipeLastT = now;
+
+  // 视觉反馈：根据滑动距离调整透明度
+  if (Math.abs(swipeDY) > 15) {
+    const progress = Math.min(Math.abs(swipeDY) / (window.innerHeight * 0.4), 1);
+    document.getElementById('swipeOverlay').style.opacity = progress * 0.15;
   }
 }, {passive: true});
 
 document.addEventListener('touchend', () => {
   if (!swipeActive) return;
   swipeActive = false;
-  if (Math.abs(swipeDelta) > window.innerWidth * 0.25) {
-    if (swipeDelta < 0 && state.currentPage < 2) {
+  document.getElementById('swipeOverlay').style.opacity = '0';
+
+  const threshold = window.innerHeight * 0.2;
+  const velocityThreshold = 0.4; // px/ms 快速滑动阈值
+
+  // 判断是否切换：距离够大，或者速度够快
+  const shouldSwitch = Math.abs(swipeDY) > threshold || Math.abs(swipeVelocity) > velocityThreshold;
+
+  if (shouldSwitch) {
+    const goNext = swipeDY < 0 || swipeVelocity < -velocityThreshold; // 向上滑=下一页
+    if (goNext && state.currentPage < 2) {
       switchToPage(state.currentPage + 1);
-    } else if (swipeDelta > 0 && state.currentPage > 0) {
+    } else if (!goNext && state.currentPage > 0) {
       switchToPage(state.currentPage - 1);
     }
   }
-  swipeDelta = 0;
-  state.pageSlideX = 0;
-  state.isSwiping = false;
+  swipeDY = 0;
+  swipeVelocity = 0;
 });
 
-// 鼠标滑动（桌面端）
-document.addEventListener('mousedown', e => {
+// 鼠标滚轮（桌面端）
+let wheelAccum = 0;
+document.addEventListener('wheel', e => {
   if (state.fullscreenIndex >= 0) return;
-  if (e.target.closest('.photo-card')) return;
   if (e.target.closest('#messagePage') && state.currentPage === 2) return;
-  swipeStartX = e.clientX;
-  swipeActive = true;
-  swipeDelta = 0;
-});
-document.addEventListener('mousemove', e => {
-  if (!swipeActive) return;
-  swipeDelta = e.clientX - swipeStartX;
-  if (Math.abs(swipeDelta) > 30) {
-    state.pageSlideX = swipeDelta;
-  }
-});
-document.addEventListener('mouseup', () => {
-  if (!swipeActive) return;
-  swipeActive = false;
-  if (Math.abs(swipeDelta) > window.innerWidth * 0.25) {
-    if (swipeDelta < 0 && state.currentPage < 2) {
+  if (e.target.closest('.photo-card')) return;
+  wheelAccum += e.deltaY;
+  if (Math.abs(wheelAccum) > 80) {
+    if (wheelAccum > 0 && state.currentPage < 2) {
       switchToPage(state.currentPage + 1);
-    } else if (swipeDelta > 0 && state.currentPage > 0) {
+    } else if (wheelAccum < 0 && state.currentPage > 0) {
       switchToPage(state.currentPage - 1);
     }
+    wheelAccum = 0;
   }
-  swipeDelta = 0;
-  state.pageSlideX = 0;
-});
+}, {passive: true});
 
 // ==================== 留言板 ====================
 const STICKY_COLORS = ['#FFD1DC','#FFFACD','#B5D8EB','#C1E1C1','#E8D5E0','#FFE4C4','#D5E8D4','#FADADD','#DAE8FC','#FFF2CC'];
-
-function loadMessages() {
-  try { return JSON.parse(localStorage.getItem('birthday_msgs_v2') || '[]'); }
-  catch { return []; }
-}
-function saveMessages(msgs) {
-  try { localStorage.setItem('birthday_msgs_v2', JSON.stringify(msgs)); }
-  catch {}
-}
-function escapeHTML(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
+function loadMsgs() { try { return JSON.parse(localStorage.getItem('bd_msgs_v2')||'[]'); } catch{return[];} }
+function saveMsgs(m) { try { localStorage.setItem('bd_msgs_v2',JSON.stringify(m)); } catch{} }
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function renderMessages() {
-  const msgs = loadMessages();
-  notesContainer.innerHTML = '';
-  const display = [...msgs].reverse();
-  for (const msg of display) {
-    const note = document.createElement('div');
-    note.className = 'sticky-note';
-    note.style.background = msg.color;
-    note.style.transform = `rotate(${msg.rotation}deg)`;
-    note.innerHTML = `<div class="noteAuthor">${escapeHTML(msg.nickname)}</div><div>${escapeHTML(msg.content)}</div><div class="noteTime">${msg.time}</div>`;
-    notesContainer.appendChild(note);
+  const msgs = loadMsgs(); notesContainer.innerHTML = '';
+  for (const m of [...msgs].reverse()) {
+    const n = document.createElement('div'); n.className='sticky-note';
+    n.style.background=m.color; n.style.transform=`rotate(${m.rotation}deg)`;
+    n.innerHTML=`<div class="noteAuthor">${esc(m.nickname)}</div><div>${esc(m.content)}</div><div class="noteTime">${m.time}</div>`;
+    notesContainer.appendChild(n);
   }
 }
-
-function addMessage() {
-  const nickname = msgNickname.value.trim();
-  const content = msgContentInput.value.trim();
-  if (!nickname || !content) return;
+function addMsg() {
+  const nn = msgNickname.value.trim(), ct = msgContentInput.value.trim();
+  if (!nn||!ct) return;
   const now = new Date();
   const ts = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const color = STICKY_COLORS[Math.floor(Math.random() * STICKY_COLORS.length)];
-  const rotation = (Math.random() - 0.5) * 8;
-  const msgs = loadMessages();
-  msgs.push({nickname, content, time: ts, color, rotation});
-  saveMessages(msgs);
-  msgNickname.value = '';
-  msgContentInput.value = '';
+  const msgs = loadMsgs();
+  msgs.push({nickname:nn,content:ct,time:ts,color:STICKY_COLORS[Math.floor(Math.random()*STICKY_COLORS.length)],rotation:(Math.random()-0.5)*8});
+  saveMsgs(msgs);
+  msgNickname.value=''; msgContentInput.value='';
   renderMessages();
 }
-
-msgSend.addEventListener('click', addMessage);
-msgContentInput.addEventListener('keydown', e => { if (e.key === 'Enter') addMessage(); });
+msgSend.addEventListener('click', addMsg);
+msgContentInput.addEventListener('keydown', e => { if(e.key==='Enter') addMsg(); });
 
 // ==================== 时光卡片 ====================
-function updateDaysCounter() {
-  const diff = Date.now() - CONFIG.startDate.getTime();
-  const days = Math.floor(diff / 86400000);
-  const cur = parseInt(daysNum.textContent) || 0;
-  if (cur !== days) animateNumber(cur, days, 1200);
-}
-function animateNumber(from, to, dur) {
-  const start = performance.now();
-  function tick(now) {
-    const p = Math.min((now - start) / dur, 1);
-    const eased = 1 - Math.pow(1 - p, 3);
-    daysNum.textContent = Math.floor(from + (to - from) * eased);
-    if (p < 1) requestAnimationFrame(tick);
+function updateDays() {
+  const d = Math.floor((Date.now()-CONFIG.startDate.getTime())/86400000);
+  const cur = parseInt(daysNum.textContent)||0;
+  if (cur!==d) {
+    const st=performance.now();
+    function t(n) {
+      const p=Math.min((n-st)/1200,1), e=1-Math.pow(1-p,3);
+      daysNum.textContent=Math.floor(cur+(d-cur)*e);
+      if(p<1) requestAnimationFrame(t);
+    }
+    requestAnimationFrame(t);
   }
-  requestAnimationFrame(tick);
 }
 
-// ==================== 背景音乐（生日歌） ====================
-let audioCtx = null;
-let musicInterval = null;
-let musicNoteIndex = 0;
-let musicPhase = 'intro';
-
-const noteFrequencies = {
-  'C2':65.41,'D2':73.42,'E2':82.41,'F2':87.31,'G2':98.00,'A2':110.00,'B2':123.47,
-  'C3':130.81,'D3':146.83,'E3':164.81,'F3':174.61,'G3':196.00,'A3':220.00,'B3':246.94,
-  'C4':261.63,'D4':293.66,'E4':329.63,'F4':349.23,'G4':392.00,'A4':440.00,'B4':493.88,
+// ==================== 生日歌 ====================
+let audioCtx=null,musicInterval=null,musicNoteIndex=0,musicPhase='intro';
+const NF={
+  'C2':65.41,'D2':73.42,'E2':82.41,'F2':87.31,'G2':98,'A2':110,'B2':123.47,
+  'C3':130.81,'D3':146.83,'E3':164.81,'F3':174.61,'G3':196,'A3':220,'B3':246.94,
+  'C4':261.63,'D4':293.66,'E4':329.63,'F4':349.23,'G4':392,'A4':440,'B4':493.88,
   'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,'G5':783.99,
 };
-const chordMap = {
-  'C':['C3','E3','G3','C4'],'G':['G2','B2','D3','G3'],
-  'F':['F2','A2','C3','F3'],'Am':['A2','C3','E3','A3'],
-  'Dm':['D3','F3','A3','D4'],
-};
-
-const introMelody = [
-  {note:'C4',dur:1.2,chord:['E4','G4','C5']},{note:null,dur:0.3},
-  {note:'G3',dur:1.0,chord:['D4','G4','B4']},{note:null,dur:0.3},
-  {note:'A3',dur:1.0,chord:['C4','E4','A4']},{note:null,dur:0.3},
-  {note:'F3',dur:1.2,chord:['C4','F4','A4']},{note:null,dur:0.5},
-  {note:'C4',dur:0.6,chord:['E4','G4']},{note:'D4',dur:0.3,chord:['F4','A4']},
-  {note:'E4',dur:0.3,chord:['G4','C5']},{note:'F4',dur:0.3,chord:['A4','C5']},
-  {note:'G4',dur:0.6},{note:null,dur:1.0},
+const CM={C:['C3','E3','G3','C4'],G:['G2','B2','D3','G3'],F:['F2','A2','C3','F3'],Am:['A2','C3','E3','A3'],Dm:['D3','F3','A3','D4']};
+const introM=[
+  {n:'C4',d:1.2,ch:['E4','G4','C5']},{n:null,d:0.3},{n:'G3',d:1,ch:['D4','G4','B4']},{n:null,d:0.3},
+  {n:'A3',d:1,ch:['C4','E4','A4']},{n:null,d:0.3},{n:'F3',d:1.2,ch:['C4','F4','A4']},{n:null,d:0.5},
+  {n:'C4',d:0.6,ch:['E4','G4']},{n:'D4',d:0.3,ch:['F4','A4']},{n:'E4',d:0.3,ch:['G4','C5']},{n:'F4',d:0.3,ch:['A4','C5']},{n:'G4',d:0.6},{n:null,d:1},
 ];
-const songMelody = [
-  {note:'G4',dur:0.22},{note:'G4',dur:0.22},{note:'A4',dur:0.45},{note:'G4',dur:0.45},{note:'C5',dur:0.45},{note:'B4',dur:0.9},{note:null,dur:0.3},
-  {note:'G4',dur:0.22},{note:'G4',dur:0.22},{note:'A4',dur:0.45},{note:'G4',dur:0.45},{note:'D5',dur:0.45},{note:'C5',dur:0.9},{note:null,dur:0.3},
-  {note:'G4',dur:0.22},{note:'G4',dur:0.22},{note:'G5',dur:0.45},{note:'E5',dur:0.45},{note:'C5',dur:0.45},{note:'B4',dur:0.35},{note:'A4',dur:0.25},{note:null,dur:0.2},
-  {note:'F5',dur:0.22},{note:'F5',dur:0.22},{note:'E5',dur:0.45},{note:'C5',dur:0.45},{note:'D5',dur:0.9},{note:'C5',dur:1.8},{note:null,dur:2.5},
+const songM=[
+  {n:'G4',d:0.22},{n:'G4',d:0.22},{n:'A4',d:0.45},{n:'G4',d:0.45},{n:'C5',d:0.45},{n:'B4',d:0.9},{n:null,d:0.3},
+  {n:'G4',d:0.22},{n:'G4',d:0.22},{n:'A4',d:0.45},{n:'G4',d:0.45},{n:'D5',d:0.45},{n:'C5',d:0.9},{n:null,d:0.3},
+  {n:'G4',d:0.22},{n:'G4',d:0.22},{n:'G5',d:0.45},{n:'E5',d:0.45},{n:'C5',d:0.45},{n:'B4',d:0.35},{n:'A4',d:0.25},{n:null,d:0.2},
+  {n:'F5',d:0.22},{n:'F5',d:0.22},{n:'E5',d:0.45},{n:'C5',d:0.45},{n:'D5',d:0.9},{n:'C5',d:1.8},{n:null,d:2.5},
 ];
-
-function getChordAt(idx) {
-  const prog = ['C','G','Am','F','C','G','C','C','F','F','C','Am','Dm','G','C','C'];
-  return prog[Math.floor(idx/8) % prog.length] || 'C';
-}
-
-function playNoteWithHarmony(freq, dur, startTime, chordType) {
-  if (!audioCtx) return;
-  // 主旋律
-  const om = audioCtx.createOscillator();
-  const gm = audioCtx.createGain();
-  om.type = 'triangle'; om.frequency.value = freq;
-  gm.gain.setValueAtTime(0, startTime);
-  gm.gain.linearRampToValueAtTime(0.16, startTime+0.04);
-  gm.gain.linearRampToValueAtTime(0.1, startTime+dur*0.5);
-  gm.gain.linearRampToValueAtTime(0, startTime+dur);
-  om.connect(gm); gm.connect(audioCtx.destination);
-  om.start(startTime); om.stop(startTime+dur+0.1);
-
-  if (chordType && chordMap[chordType]) {
-    for (const cn of chordMap[chordType]) {
-      const cf = noteFrequencies[cn]; if (!cf) continue;
-      const oc = audioCtx.createOscillator();
-      const gc = audioCtx.createGain();
-      oc.type = 'sine'; oc.frequency.value = cf;
-      gc.gain.setValueAtTime(0, startTime);
-      gc.gain.linearRampToValueAtTime(0.03, startTime+0.03);
-      gc.gain.linearRampToValueAtTime(0.018, startTime+dur*0.6);
-      gc.gain.linearRampToValueAtTime(0, startTime+dur);
-      oc.connect(gc); gc.connect(audioCtx.destination);
-      oc.start(startTime); oc.stop(startTime+dur+0.1);
-    }
-  }
-  // 铃铛高音
-  if (dur > 0.3) {
-    const ob = audioCtx.createOscillator();
-    const gb = audioCtx.createGain();
-    ob.type = 'sine'; ob.frequency.value = freq * 3;
-    gb.gain.setValueAtTime(0, startTime);
-    gb.gain.linearRampToValueAtTime(0.02, startTime+0.02);
-    gb.gain.exponentialRampToValueAtTime(0.001, startTime+dur*0.5);
-    ob.connect(gb); gb.connect(audioCtx.destination);
-    ob.start(startTime); ob.stop(startTime+dur*0.5);
+function gCA(i){const p=['C','G','Am','F','C','G','C','C','F','F','C','Am','Dm','G','C','C'];return p[Math.floor(i/8)%p.length]||'C';}
+function pNWH(f,d,st,ct){
+  if(!audioCtx)return;
+  const om=audioCtx.createOscillator(),gm=audioCtx.createGain();
+  om.type='triangle';om.frequency.value=f;
+  gm.gain.setValueAtTime(0,st);gm.gain.linearRampToValueAtTime(0.16,st+0.04);
+  gm.gain.linearRampToValueAtTime(0.1,st+d*0.5);gm.gain.linearRampToValueAtTime(0,st+d);
+  om.connect(gm);gm.connect(audioCtx.destination);om.start(st);om.stop(st+d+0.1);
+  if(ct&&CM[ct]){for(const cn of CM[ct]){if(!NF[cn])continue;
+    const oc=audioCtx.createOscillator(),gc=audioCtx.createGain();
+    oc.type='sine';oc.frequency.value=NF[cn];
+    gc.gain.setValueAtTime(0,st);gc.gain.linearRampToValueAtTime(0.03,st+0.03);
+    gc.gain.linearRampToValueAtTime(0.018,st+d*0.6);gc.gain.linearRampToValueAtTime(0,st+d);
+    oc.connect(gc);gc.connect(audioCtx.destination);oc.start(st);oc.stop(st+d+0.1);
+  }}
+  if(d>0.3){const ob=audioCtx.createOscillator(),gb=audioCtx.createGain();
+    ob.type='sine';ob.frequency.value=f*3;
+    gb.gain.setValueAtTime(0,st);gb.gain.linearRampToValueAtTime(0.02,st+0.02);
+    gb.gain.exponentialRampToValueAtTime(0.001,st+d*0.5);
+    ob.connect(gb);gb.connect(audioCtx.destination);ob.start(st);ob.stop(st+d*0.5);
   }
 }
-
-function playMelodyStep() {
-  if (!state.musicPlaying || !audioCtx) return;
-  const mel = musicPhase === 'intro' ? introMelody : songMelody;
-  const idx = musicNoteIndex % mel.length;
-  const nd = mel[idx];
-  const now = audioCtx.currentTime;
-  if (nd.note && noteFrequencies[nd.note]) {
-    const ct = musicPhase === 'song' ? getChordAt(idx) : null;
-    playNoteWithHarmony(noteFrequencies[nd.note], nd.dur, now, ct);
-    if (nd.chord && musicPhase === 'intro') {
-      for (const cn of nd.chord) {
-        if (noteFrequencies[cn]) {
-          const oc = audioCtx.createOscillator();
-          const gc = audioCtx.createGain();
-          oc.type = 'sine'; oc.frequency.value = noteFrequencies[cn];
-          gc.gain.setValueAtTime(0, now);
-          gc.gain.linearRampToValueAtTime(0.05, now+0.04);
-          gc.gain.linearRampToValueAtTime(0.02, now+nd.dur*0.7);
-          gc.gain.linearRampToValueAtTime(0, now+nd.dur);
-          oc.connect(gc); gc.connect(audioCtx.destination);
-          oc.start(now); oc.stop(now+nd.dur+0.1);
-        }
-      }
-    }
+function pMS(){
+  if(!state.musicPlaying||!audioCtx)return;
+  const mel=musicPhase==='intro'?introM:songM;
+  const idx=musicNoteIndex%mel.length,nd=mel[idx],now=audioCtx.currentTime;
+  if(nd.n&&NF[nd.n]){
+    pNWH(NF[nd.n],nd.d,now,musicPhase==='song'?gCA(idx):null);
+    if(nd.ch&&musicPhase==='intro'){for(const cn of nd.ch){if(!NF[cn])continue;
+      const oc=audioCtx.createOscillator(),gc=audioCtx.createGain();
+      oc.type='sine';oc.frequency.value=NF[cn];
+      gc.gain.setValueAtTime(0,now);gc.gain.linearRampToValueAtTime(0.05,now+0.04);
+      gc.gain.linearRampToValueAtTime(0.02,now+nd.d*0.7);gc.gain.linearRampToValueAtTime(0,now+nd.d);
+      oc.connect(gc);gc.connect(audioCtx.destination);oc.start(now);oc.stop(now+nd.d+0.1);
+    }}
   }
   musicNoteIndex++;
-  if (musicPhase === 'intro' && musicNoteIndex >= introMelody.length) {
-    musicPhase = 'song'; musicNoteIndex = 0;
-  } else if (musicPhase === 'song' && musicNoteIndex >= songMelody.length) {
-    musicNoteIndex = 0;
-  }
-  musicInterval = setTimeout(playMelodyStep, nd.dur*1000 + 50);
+  if(musicPhase==='intro'&&musicNoteIndex>=introM.length){musicPhase='song';musicNoteIndex=0;}
+  else if(musicPhase==='song'&&musicNoteIndex>=songM.length){musicNoteIndex=0;}
+  musicInterval=setTimeout(pMS,nd.d*1000+50);
 }
-
-function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-}
-function startMusic() {
-  initAudio();
-  state.musicPlaying = true;
-  musicBtn.classList.add('playing'); musicBtn.classList.remove('paused');
-  musicBtn.textContent = '🎵';
-  musicNoteIndex = 0; musicPhase = 'intro';
-  playMelodyStep();
-}
-function stopMusic() {
-  state.musicPlaying = false;
-  musicBtn.classList.remove('playing'); musicBtn.classList.add('paused');
-  musicBtn.textContent = '🔇';
-  if (musicInterval) { clearTimeout(musicInterval); musicInterval = null; }
-}
-function toggleMusic() { state.musicPlaying ? stopMusic() : startMusic(); }
-musicBtn.addEventListener('click', toggleMusic);
-
-let audioInitialized = false;
-document.addEventListener('click', function initAudioOnce() {
-  if (audioInitialized) return;
-  initAudio();
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume().then(() => { if (state.musicPlaying && !musicInterval) startMusic(); });
-  } else if (audioCtx && audioCtx.state === 'running') {
-    if (state.musicPlaying && !musicInterval) startMusic();
-  }
-  audioInitialized = true;
+function iA(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
+function sM(){iA();state.musicPlaying=true;musicBtn.classList.add('playing');musicBtn.classList.remove('paused');musicBtn.textContent='🎵';musicNoteIndex=0;musicPhase='intro';pMS();}
+function stopM(){state.musicPlaying=false;musicBtn.classList.remove('playing');musicBtn.classList.add('paused');musicBtn.textContent='🔇';if(musicInterval){clearTimeout(musicInterval);musicInterval=null;}}
+musicBtn.addEventListener('click',()=>{state.musicPlaying?stopM():sM();});
+let aI=false;
+document.addEventListener('click',function o(){
+  if(aI)return;iA();
+  if(audioCtx&&audioCtx.state==='suspended'){audioCtx.resume().then(()=>{if(state.musicPlaying&&!musicInterval)sM();});}
+  else if(audioCtx&&audioCtx.state==='running'){if(state.musicPlaying&&!musicInterval)sM();}
+  aI=true;
 });
 
 // ==================== 主渲染循环 ====================
-let heartCenterX = window.innerWidth / 2;
-let heartCenterY = window.innerHeight * 0.45;
-let globalTime = 0;
-let lastSpawnTime = 0;
-let photoFallStarted = false;
-let animationStartTs = null;
+let hCX=window.innerWidth/2,hCY=window.innerHeight*0.45;
+let globalTime=0,lastSpawnTime=0,photoFallStarted=false,animStartTs=null;
 
-function animate(timestamp) {
+function animate(ts){
   requestAnimationFrame(animate);
+  if(animStartTs===null)animStartTs=ts;
+  const rTs=ts-animStartTs;
+  globalTime=rTs*0.001;
+  hCX=window.innerWidth/2;hCY=window.innerHeight*0.45;
+  const wind=Math.sin(globalTime*0.3)*0.15+Math.sin(globalTime*0.7)*0.08;
+  window._globalWind=wind;
+  if(!ctx)return;
+  ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
 
-  if (animationStartTs === null) animationStartTs = timestamp;
-  const relativeTs = timestamp - animationStartTs;
-  globalTime = relativeTs * 0.001;
-
-  heartCenterX = window.innerWidth / 2;
-  heartCenterY = window.innerHeight * 0.45;
-
-  const wind = Math.sin(globalTime * 0.3) * 0.15 + Math.sin(globalTime * 0.7) * 0.08;
-  window._globalWind = wind;
-
-  if (!ctx) return;
-  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-  // ---- 阶段管理 ----
-  if (state.phase === 'heart' && relativeTs > CONFIG.heartDuration) {
-    state.phase = 'bursting';
-    state.burstStart = relativeTs;
-    const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
-    for (const p of particles) {
-      const pos = p.getHeartPos(scale, globalTime);
-      p.initPetal(pos, heartCenterX, heartCenterY);
-      p.petalVX *= 2.5; p.petalVY *= 2.5;
-    }
+  // 阶段管理
+  if(state.phase==='heart'&&rTs>CONFIG.heartDuration){
+    state.phase='bursting';state.burstStart=rTs;
+    const sc=CONFIG.heartScale*Math.min(window.innerWidth,window.innerHeight)*0.028;
+    for(const p of particles){const pos=p.getHeartPos(sc,globalTime);p.initPetal(pos,hCX,hCY);p.petalVX*=2.5;p.petalVY*=2.5;}
     heroText.classList.add('visible');
   }
-  if (state.phase === 'bursting' && (relativeTs - state.burstStart) > CONFIG.burstDuration) {
-    state.phase = 'falling';
-    photoFallStarted = true;
-    lastSpawnTime = 0;
-    for (const p of particles) { p.petalVX *= 0.3; p.petalVY *= 0.3; }
-    setTimeout(() => swipeHint.classList.add('visible'), 2000);
+  if(state.phase==='bursting'&&(rTs-state.burstStart)>CONFIG.burstDuration){
+    state.phase='falling';photoFallStarted=true;lastSpawnTime=0;
+    for(const p of particles){p.petalVX*=0.3;p.petalVY*=0.3;}
   }
 
-  // ---- 萤火虫 ----
-  for (const s of sparkles) { s.update(); s.draw(ctx, globalTime); }
+  // 萤火虫
+  for(const s of sparkles){s.update();s.draw(ctx,globalTime);}
 
-  // ---- 爱心 ----
-  if (state.phase === 'heart') {
-    const elapsed = relativeTs * 0.001;
-    const scale = CONFIG.heartScale * Math.min(window.innerWidth, window.innerHeight) * 0.028;
-    const fadeIn = Math.min(elapsed / 0.8, 1);
-    for (const p of particles) {
-      const pos = p.getHeartPos(scale, elapsed);
-      const x = heartCenterX + pos.x, y = heartCenterY + pos.y;
-      p.rotation += p.rotationSpeed;
-      p.updateTrail(x, y);
-      p.drawHeart(ctx, x, y, fadeIn * 0.9);
+  // 爱心
+  if(state.phase==='heart'){
+    const el=rTs*0.001,sc=CONFIG.heartScale*Math.min(window.innerWidth,window.innerHeight)*0.028;
+    const fi=Math.min(el/0.8,1);
+    for(const p of particles){
+      const pos=p.getHeartPos(sc,el);
+      p.rotation+=p.rotationSpeed;p.updateTrail(hCX+pos.x,hCY+pos.y);
+      p.drawHeart(ctx,hCX+pos.x,hCY+pos.y,fi*0.9);
     }
-    const ga = 0.15 + Math.sin(elapsed*2.5)*0.05;
-    const glow = ctx.createRadialGradient(heartCenterX, heartCenterY-5, 0, heartCenterX, heartCenterY, scale*8);
-    glow.addColorStop(0, `rgba(255,150,180,${ga*2})`);
-    glow.addColorStop(1, 'rgba(255,150,180,0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(heartCenterX, heartCenterY-5, scale*8, 0, Math.PI*2); ctx.fill();
+    const ga=0.15+Math.sin(el*2.5)*0.05;
+    const g=ctx.createRadialGradient(hCX,hCY-5,0,hCX,hCY,sc*8);
+    g.addColorStop(0,`rgba(255,150,180,${ga*2})`);g.addColorStop(1,'rgba(255,150,180,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(hCX,hCY-5,sc*8,0,Math.PI*2);ctx.fill();
   }
 
-  // ---- 花瓣 ----
-  if (state.phase === 'bursting' || state.phase === 'falling') {
-    const burstElapsed = (relativeTs - (state.burstStart || 0)) * 0.001;
-    const fadeIn = Math.min(burstElapsed / 0.4, 1);
-    const gravity = state.phase === 'bursting' ? 0.008 : 0.03;
-    for (const p of particles) {
-      p.updatePetal(gravity, wind);
-      p.drawPetal(ctx, p.petalX, p.petalY, fadeIn * 0.85);
-    }
+  // 花瓣（仅在前两页显示，第3页 Canvas 已 hidden）
+  if((state.phase==='bursting'||state.phase==='falling')&&state.currentPage<2){
+    const be=(rTs-(state.burstStart||0))*0.001,fi=Math.min(be/0.4,1);
+    const gv=state.phase==='bursting'?0.008:0.03;
+    for(const p of particles){p.updatePetal(gv,wind);p.drawPetal(ctx,p.petalX,p.petalY,fi*0.85);}
   }
 
-  // ---- 照片生成（仅在前两页） ----
-  if (photoFallStarted && state.phase === 'falling' && state.currentPage < 2) {
-    if (lastSpawnTime === 0) {
-      for (let i = 0; i < 4; i++) setTimeout(() => spawnPhotoCard(), i * 250);
-      lastSpawnTime = relativeTs;
-    } else if (relativeTs - lastSpawnTime > CONFIG.photoFallInterval) {
-      spawnPhotoCard();
-      lastSpawnTime = relativeTs;
-    }
+  // 照片生成
+  if(photoFallStarted&&state.phase==='falling'&&state.currentPage<2){
+    if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*250);lastSpawnTime=rTs;}
+    else if(rTs-lastSpawnTime>CONFIG.photoFallInterval){spawnPhotoCard();lastSpawnTime=rTs;}
   }
 
-  // ---- 更新照片 ----
-  let fallingCount = 0, collectedNow = 0;
-  for (const card of photoCards) {
-    if (!card.element) continue;
-    card.update(); card.render();
-    if (!card.dragging && card.fallSpeed > 0) fallingCount++;
-    if (card.collected) collectedNow++;
-  }
-  photoCards = photoCards.filter(c => c.element !== null);
-  infoFalling.textContent = fallingCount;
-  infoCollected.textContent = collectedNow;
-  state.collectedCount = collectedNow;
+  // 更新照片
+  let fc=0,cn=0;
+  for(const c of photoCards){if(!c.element)continue;c.update();c.render();if(!c.dragging&&c.fallSpeed>0)fc++;if(c.collected)cn++;}
+  photoCards=photoCards.filter(c=>c.element!==null);
+  infoFalling.textContent=fc;infoCollected.textContent=cn;state.collectedCount=cn;
 
-  // ---- 音乐 ----
-  if (state.musicPlaying && audioCtx && audioCtx.state === 'running' && !musicInterval) {
-    musicNoteIndex = 0; playMelodyStep();
-  }
+  // 音乐
+  if(state.musicPlaying&&audioCtx&&audioCtx.state==='running'&&!musicInterval){musicNoteIndex=0;pMS();}
 }
 
 // ==================== 初始化 ====================
-function init() {
-  updateDaysCounter();
-  renderMessages();
-  state.musicPlaying = true;
-  musicBtn.classList.add('playing'); musicBtn.classList.remove('paused');
-  musicBtn.textContent = '🎵';
+function init(){
+  updateDays();renderMessages();
+  state.musicPlaying=true;musicBtn.classList.add('playing');musicBtn.classList.remove('paused');musicBtn.textContent='🎵';
+  updatePageUI();
   requestAnimationFrame(animate);
 }
-
-window.addEventListener('DOMContentLoaded', init);
-setInterval(updateDaysCounter, 60000);
-
-// 响应式
-window.addEventListener('resize', () => {
-  resizeCanvas();
-  for (const s of sparkles) {
-    s.x = Math.min(s.x, window.innerWidth);
-    s.y = Math.min(s.y, window.innerHeight);
-  }
-});
-
-console.log('第1页：合照花雨 | 第2页：独照花雨 | 第3页：留言板');
-console.log('← 左右滑动切换页面 →');
+window.addEventListener('DOMContentLoaded',init);
+setInterval(updateDays,60000);
+window.addEventListener('resize',()=>{resizeCanvas();for(const s of sparkles){s.x=Math.min(s.x,window.innerWidth);s.y=Math.min(s.y,window.innerHeight);}});
 </script>
 </body>
 </html>
