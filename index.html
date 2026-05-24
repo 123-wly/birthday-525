@@ -196,6 +196,10 @@ const PHOTO_PATHS = {
   solo: ['微信图片_20260522201846_49_100.jpg','微信图片_20260522201847_50_100.jpg','微信图片_20260522201847_51_100.jpg','微信图片_20260522201848_52_100.jpg','微信图片_20260522201849_53_100.jpg','微信图片_20260522201850_54_100.jpg','微信图片_20260522201851_55_100.jpg','微信图片_20260522201852_56_100.jpg','微信图片_20260522201852_57_100.jpg','微信图片_20260522201853_58_100.jpg','微信图片_20260522201854_59_100.jpg','微信图片_20260522201855_60_100.jpg','微信图片_20260522201859_64_100.jpg','微信图片_20260524162500_86_100.jpg','微信图片_20260524162501_87_100.jpg','微信图片_20260524162502_88_100.jpg','微信图片_20260524162504_89_100.jpg','微信图片_20260524162505_90_100.jpg','微信图片_20260524162506_91_100.jpg','微信图片_20260524162507_92_100.jpg','微信图片_20260524162508_93_100.jpg','微信图片_20260524162509_94_100.jpg','微信图片_20260524162510_95_100.jpg','微信图片_20260524162511_96_100.jpg']
 };
 
+// ==================== 留言板云端配置 ====================
+const MSG_BLOB_ID='019e59e9-677c-75b8-be6c-09dea313bebe';
+const MSG_BLOB_URL=`https://jsonblob.com/api/jsonBlob/${MSG_BLOB_ID}`;
+
 // ==================== 全局状态 ====================
 let state = { phase:'heart', currentPage:0, musicPlaying:true, fullscreenIndex:-1, scratchDone:false };
 
@@ -537,13 +541,17 @@ document.addEventListener('touchend',()=>{if(!swipeActive)return;swipeActive=fal
 let wa=0;
 document.addEventListener('wheel',e=>{if(state.fullscreenIndex>=0)return;if(state.currentPage===4&&e.target.closest('input,button'))return;if(e.target.closest('.photo-card'))return;wa+=e.deltaY;if(Math.abs(wa)>80){if(wa>0&&state.currentPage<4)switchToPage(state.currentPage+1);else if(wa<0&&state.currentPage>0)switchToPage(state.currentPage-1);wa=0}},{passive:true});
 
-// ==================== 留言板 ====================
+// ==================== 留言板（云端同步） ====================
 const SC=['#FFD1DC','#FFFACD','#B5D8EB','#C1E1C1','#E8D5E0','#FFE4C4','#D5E8D4','#FADADD','#DAE8FC','#FFF2CC'];
-function lm(){try{return JSON.parse(localStorage.getItem('bd_v3')||'[]')}catch{return[]}}
-function sm(m){try{localStorage.setItem('bd_v3',JSON.stringify(m))}catch{}}
+function mid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)}
+function lm(){try{return JSON.parse(localStorage.getItem('bd_v4')||'[]')}catch{return[]}}
+function sm(m){try{localStorage.setItem('bd_v4',JSON.stringify(m))}catch{}}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+async function loadRemote(){try{const r=await fetch(MSG_BLOB_URL,{cache:'no-store'});if(!r.ok)return null;return await r.json()}catch{return null}}
+async function saveRemote(msgs){try{const r=await fetch(MSG_BLOB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(msgs)});return r.ok}catch{return false}}
 function renderMessages(){const m=lm();notesContainer.innerHTML='';for(const x of[...m].reverse()){const n=document.createElement('div');n.className='sticky-note';n.style.background=x.color;n.style.transform=`rotate(${x.rotation}deg)`;n.innerHTML=`<div class="noteAuthor">${esc(x.nickname)}</div><div>${esc(x.content)}</div><div class="noteTime">${x.time}</div>`;notesContainer.appendChild(n)}}
-function addMsg(){const nn=msgNickname.value.trim(),ct=msgContentInput.value.trim();if(!nn||!ct)return;const now=new Date(),ts=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;const m=lm();m.push({nickname:nn,content:ct,time:ts,color:SC[Math.floor(Math.random()*SC.length)],rotation:(Math.random()-0.5)*8});sm(m);msgNickname.value='';msgContentInput.value='';renderMessages()}
+async function syncMessages(){try{const remote=await loadRemote();if(!remote)return;const local=lm();let changed=false;for(const rm of remote){if(!local.some(l=>l.id===rm.id)){local.push(rm);changed=true}}if(changed){sm(local);renderMessages()}const localIds=new Set(local.map(l=>l.id));const missingRemote=local.filter(l=>!remote.some(r=>r.id===l.id));if(missingRemote.length>0){await saveRemote([...remote,...missingRemote])}}catch{}}
+async function addMsg(){const nn=msgNickname.value.trim(),ct=msgContentInput.value.trim();if(!nn||!ct)return;const now=new Date(),ts=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;const newMsg={id:mid(),nickname:nn,content:ct,time:ts,color:SC[Math.floor(Math.random()*SC.length)],rotation:(Math.random()-0.5)*8};const m=lm();m.push(newMsg);sm(m);msgNickname.value='';msgContentInput.value='';renderMessages();const remote=await loadRemote();const base=remote||[];if(!base.some(r=>r.id===newMsg.id)){base.push(newMsg);await saveRemote(base)}}function migrateV4(){const old=lm();if(old.length>0&&!old[0].id){const migrated=old.map(m=>({...m,id:mid()}));sm(migrated)}}
 msgSend.addEventListener('click',addMsg);msgContentInput.addEventListener('keydown',e=>{if(e.key==='Enter')addMsg()});
 
 // ==================== 时光卡片 ====================
@@ -700,13 +708,15 @@ function preloadAllPhotos(){
 function init(){
   preloadAllPhotos();
   initGhostImages(); // 预建虚影Image对象
-  updateDays();renderMessages();
+  migrateV4();updateDays();renderMessages();
+  syncMessages(); // 首次拉取云端留言
   state.musicPlaying=true;musicBtn.classList.add('playing');musicBtn.classList.remove('paused');musicBtn.textContent='🎵';
   updatePageUI();
   requestAnimationFrame(animate);
 }
 window.addEventListener('DOMContentLoaded',init);
 setInterval(updateDays,60000);
+setInterval(syncMessages,20000); // 每20秒同步一次云端留言
 window.addEventListener('resize',()=>{resizeCanvas();for(const s of sparkles){s.x=Math.min(s.x,window.innerWidth);s.y=Math.min(s.y,window.innerHeight)}});
 </script>
 </body>
