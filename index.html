@@ -43,9 +43,6 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
 #pageOverlay{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);z-index:12;pointer-events:none;text-align:center;opacity:0;transition:opacity 0.5s ease}
 #pageOverlay .msg{font-size:clamp(1.3rem,4vw,2rem);font-weight:700;color:#e91e63;letter-spacing:0.06em}
 
-/* 信息面板 */
-#infoPanel{position:fixed;bottom:64px;left:16px;z-index:20;background:rgba(255,255,255,0.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:2px solid #f8bbd0;border-radius:18px;padding:10px 16px;font-size:13px;color:#c2185b;box-shadow:0 4px 16px rgba(233,30,99,0.15);pointer-events:none;line-height:1.6;transition:opacity 0.4s ease}
-
 /* 音乐按钮 */
 #musicBtn{position:fixed;bottom:20px;right:16px;z-index:30;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:2px solid #f8bbd0;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(233,30,99,0.2);transition:all 0.3s ease}
 #musicBtn.playing{animation:musicSpin 3s linear infinite;border-color:#e91e63;color:#e91e63}
@@ -104,7 +101,6 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
   .photo-card .polaroid{width:130px;padding:6px 6px 22px 6px}
   .photo-card .polaroid img{width:118px;height:118px}
   .photo-card .polaroid::after{font-size:10px;bottom:3px}
-  #infoPanel{bottom:56px;left:10px;padding:8px 12px;font-size:11px}
   #musicBtn{bottom:14px;right:10px;width:42px;height:42px;font-size:20px}
   #fullscreenViewer .navBtn{width:38px;height:38px;font-size:18px}
   #pageDots{bottom:64px}
@@ -145,10 +141,6 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
   <div class="daysLabel">天</div>
 </div>
 
-<div id="infoPanel">
-  <div>飘落中：<span id="fallingCount">0</span> 张</div>
-  <div>已收藏：<span id="collectedCount">0</span> 张</div>
-</div>
 
 <button id="musicBtn" class="playing">🎵</button>
 
@@ -200,19 +192,18 @@ const isMobile = window.innerWidth < 768;
 if (isMobile) { CONFIG.particleCount = 1400; CONFIG.sparkleCount = 35; CONFIG.maxFallingPhotos = 6; }
 
 const PHOTO_PATHS = {
-  together: ['微信图片_20260522201856_61_100.jpg','微信图片_20260522201857_62_100.jpg','微信图片_20260522201858_63_100.jpg','微信图片_20260522201900_65_100.jpg','微信图片_20260522201900_66_100.jpg','微信图片_20260522201901_67_100.jpg','微信图片_20260522201902_68_100.jpg','微信图片_20260522201903_69_100.jpg','微信图片_20260522201905_70_100.jpg','微信图片_20260522201905_71_100.jpg','微信图片_20260522201907_72_100.jpg','微信图片_20260522201907_73_100.jpg'],
-  solo: ['微信图片_20260522201846_49_100.jpg','微信图片_20260522201847_50_100.jpg','微信图片_20260522201847_51_100.jpg','微信图片_20260522201848_52_100.jpg','微信图片_20260522201849_53_100.jpg','微信图片_20260522201850_54_100.jpg','微信图片_20260522201851_55_100.jpg','微信图片_20260522201852_56_100.jpg','微信图片_20260522201852_57_100.jpg','微信图片_20260522201853_58_100.jpg','微信图片_20260522201854_59_100.jpg','微信图片_20260522201855_60_100.jpg','微信图片_20260522201859_64_100.jpg']
+  together: ['微信图片_20260522201856_61_100.jpg','微信图片_20260522201857_62_100.jpg','微信图片_20260522201858_63_100.jpg','微信图片_20260522201900_65_100.jpg','微信图片_20260522201900_66_100.jpg','微信图片_20260522201901_67_100.jpg','微信图片_20260522201902_68_100.jpg','微信图片_20260522201903_69_100.jpg','微信图片_20260522201905_70_100.jpg','微信图片_20260522201905_71_100.jpg','微信图片_20260522201907_72_100.jpg','微信图片_20260522201907_73_100.jpg','微信图片_20260524162812_97_100.jpg','微信图片_20260524162813_98_100.jpg','微信图片_20260524162814_99_100.jpg','微信图片_20260524162815_100_100.jpg','微信图片_20260524162816_101_100.jpg','微信图片_20260524162817_102_100.jpg'],
+  solo: ['微信图片_20260522201846_49_100.jpg','微信图片_20260522201847_50_100.jpg','微信图片_20260522201847_51_100.jpg','微信图片_20260522201848_52_100.jpg','微信图片_20260522201849_53_100.jpg','微信图片_20260522201850_54_100.jpg','微信图片_20260522201851_55_100.jpg','微信图片_20260522201852_56_100.jpg','微信图片_20260522201852_57_100.jpg','微信图片_20260522201853_58_100.jpg','微信图片_20260522201854_59_100.jpg','微信图片_20260522201855_60_100.jpg','微信图片_20260522201859_64_100.jpg','微信图片_20260524162500_86_100.jpg','微信图片_20260524162501_87_100.jpg','微信图片_20260524162502_88_100.jpg','微信图片_20260524162504_89_100.jpg','微信图片_20260524162505_90_100.jpg','微信图片_20260524162506_91_100.jpg','微信图片_20260524162507_92_100.jpg','微信图片_20260524162508_93_100.jpg','微信图片_20260524162509_94_100.jpg','微信图片_20260524162510_95_100.jpg','微信图片_20260524162511_96_100.jpg']
 };
 
 // ==================== 全局状态 ====================
-let state = { phase:'heart', currentPage:0, collectedCount:0, musicPlaying:true, fullscreenIndex:-1, scratchDone:false };
+let state = { phase:'heart', currentPage:0, musicPlaying:true, fullscreenIndex:-1, scratchDone:false };
 
 // ==================== DOM ====================
 const canvas=document.getElementById('particleCanvas'), ctx=canvas.getContext('2d');
 const photoContainer=document.getElementById('photoContainer');
 const heroText=document.getElementById('heroText');
 const pageOverlay=document.getElementById('pageOverlay'), pageOverlayMsg=pageOverlay.querySelector('.msg');
-const infoFalling=document.getElementById('fallingCount'), infoCollected=document.getElementById('collectedCount');
 const musicBtn=document.getElementById('musicBtn');
 const fullscreenViewer=document.getElementById('fullscreenViewer');
 const fullscreenImg=fullscreenViewer.querySelector('img'), fullscreenCounter=fullscreenViewer.querySelector('.counter');
@@ -221,7 +212,6 @@ const messagePage=document.getElementById('messagePage');
 const msgNickname=document.getElementById('msgNickname'), msgContentInput=document.getElementById('msgContent'), msgSend=document.getElementById('msgSend');
 const notesContainer=document.getElementById('notesContainer');
 const pageDots=document.getElementById('pageDots').querySelectorAll('.dot');
-const infoPanel=document.getElementById('infoPanel');
 const scratchPage=document.getElementById('scratchPage'), scratchCanvas=document.getElementById('scratchCanvas');
 const preloadContainer=document.getElementById('preloadContainer');
 
@@ -493,7 +483,6 @@ function updatePageUI(){
   pageDots.forEach((d,i)=>d.classList.toggle('active',i===p));
   canvas.classList.toggle('hidden',p>=4);
   photoContainer.classList.toggle('hidden',p<1||p>2);
-  infoPanel.style.opacity=(p>=1&&p<=2)?'1':'0';
   if(p===0){heroText.style.opacity=''}else{heroText.style.opacity='0'}
   if(p===3){scratchPage.classList.add('active');initScratchCard()}else{scratchPage.classList.remove('active')}
   if(p===4){messagePage.classList.add('active');renderMessages()}else{messagePage.classList.remove('active')}
@@ -680,10 +669,8 @@ function animate(ts){
     else if(rTs-lastSpawnTime>CONFIG.photoFallInterval+Math.random()*300-150){spawnPhotoCard();lastSpawnTime=rTs}
   }
 
-  let fc=0,cn=0;
-  for(const c of photoCards){if(!c.element)continue;c.update();c.render();if(!c.dragging&&c.fallSpeed>0)fc++;if(c.collected)cn++}
+  for(const c of photoCards){if(!c.element)continue;c.update();c.render()}
   photoCards=photoCards.filter(c=>c.element!==null);
-  infoFalling.textContent=fc;infoCollected.textContent=cn;state.collectedCount=cn;
 
   if(state.musicPlaying&&audioCtx&&audioCtx.state==='running'&&!musicSchedId){musicNoteIdx=0;scheduleMusicBlock(audioCtx.currentTime+0.1,8)}
   }catch(e){}
