@@ -185,7 +185,7 @@ const CONFIG = {
   startDate: new Date('2026-01-20'),
   heartDuration: 3800, burstDuration: 1300,
   particleCount: 2400, sparkleCount: 70,
-  photoFallInterval: 1700, maxFallingPhotos: 8,
+  photoFallInterval: 1000, maxFallingPhotos: 8,
   heartScale: 0.7, fallSpeedBase: 0.85, fallSpeedRange: 0.55,
 };
 const isMobile = window.innerWidth < 768;
@@ -597,7 +597,7 @@ let aI=false;
 document.addEventListener('click',function o(){if(aI)return;iA();if(audioCtx&&audioCtx.state==='suspended'){audioCtx.resume().then(()=>{if(state.musicPlaying&&!musicSchedId)sM()})}else if(audioCtx&&audioCtx.state==='running'){if(state.musicPlaying&&!musicSchedId)sM()}aI=true});
 
 // ==================== 主渲染循环 ====================
-let hCX=window.innerWidth/2,hCY=window.innerHeight*0.45,globalTime=0,lastSpawnTime=0,photoFallStarted=false,animStartTs=null;
+let hCX=window.innerWidth/2,hCY=window.innerHeight*0.45,globalTime=0,lastSpawnTime=0,nextSpawnDelay=1000,photoFallStarted=false,animStartTs=null;
 
 function animate(ts){
   requestAnimationFrame(animate);
@@ -665,8 +665,8 @@ function animate(ts){
   }catch(e){}
 
   if(photoFallStarted&&state.phase==='falling'&&state.currentPage>=1&&state.currentPage<=2){
-    if(lastSpawnTime===0){for(let i=0;i<4;i++)setTimeout(()=>spawnPhotoCard(),i*380);lastSpawnTime=rTs}
-    else if(rTs-lastSpawnTime>CONFIG.photoFallInterval+Math.random()*300-150){spawnPhotoCard();lastSpawnTime=rTs}
+    if(lastSpawnTime===0){spawnPhotoCard();setTimeout(()=>spawnPhotoCard(),500);lastSpawnTime=rTs;nextSpawnDelay=CONFIG.photoFallInterval}
+    else if(rTs-lastSpawnTime>nextSpawnDelay){const cc=photoCards.filter(c=>c.element!==null).length;if(cc<CONFIG.maxFallingPhotos){spawnPhotoCard();lastSpawnTime=rTs;nextSpawnDelay=CONFIG.photoFallInterval+(Math.random()*160-80)}else{lastSpawnTime=rTs;nextSpawnDelay=350+Math.random()*200}}
   }
 
   for(const c of photoCards){if(!c.element)continue;c.update();c.render()}
